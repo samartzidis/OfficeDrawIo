@@ -16,4 +16,5 @@ Runtime Requirements
 
 Screenshots
 -----------
-![raspikey-diagram](screen1.png)
+[![raspikey-diagram](screen1_tn.png)](screen1.png)
+
