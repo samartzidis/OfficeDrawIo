@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Product Id="{C0C8A46C-DC7F-45D3-92A8-225FDEC9937F}" 
+           Name="Office Draw.io" Language="1033" Version="1.0.0.0"
+           Manufacturer="George Samartzidis" UpgradeCode="5db2e48f-7431-4db0-be29-29a1649aa678">
+
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"  InstallPrivileges="elevated" AdminImage="yes" />
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+		<Feature Id="ProductFeature" Title="OfficeDrawIoSetup" Level="1">
+			<ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="Registry_FriendlyName" />
+      <ComponentRef Id="Registry_Description" />
+      <ComponentRef Id="Registry_Manifest" />
+      <ComponentRef Id="Registry_LoadBehavior" />
+		</Feature>
+
+    <PropertyRef Id="NETFRAMEWORK45" />
+    <Condition Message="[ProductName] Requires .NET Framework 4.6 or later to be installed">
+      <![CDATA[Installed OR (NETFRAMEWORK45 AND NETFRAMEWORK45 >= "#393295")]]> <!-- 4.6=393295 4.7.2=461808-->
+    </Condition>
+
+    <UIRef Id="WixUI_Minimal" />    
+ 
+    <InstallExecuteSequence>
+      <Custom Action="ExtractArchive.SetProperty" After="CostFinalize" /> 
+      <Custom Action="ExtractArchive" After="InstallFiles">(NOT Installed) AND (NOT REMOVE)</Custom>
+      <Custom Action="DeleteFolder.SetProperty" After="CostFinalize" />
+      <Custom Action="DeleteFolder" Before="InstallFiles">(NOT UPGRADINGPRODUCTCODE) AND (REMOVE="ALL")</Custom>
+    </InstallExecuteSequence>
+ 
+	</Product>
+  
+  <Fragment>  
+    <CustomAction Id="ExtractArchive.SetProperty" Return="check" Property="ExtractArchive" Value="EXTRACTFOLDER=[INSTALLFOLDER];FILEPATH=[INSTALLFOLDER]drawio-export.zip" Execute='immediate' />
+    <CustomAction Id='ExtractArchive' BinaryKey='SetupHelperBinary' DllEntry='ExtractArchive' Execute='deferred' Impersonate='no' Return='check'/>
+    <CustomAction Id="DeleteFolder.SetProperty" Return="check" Property="DeleteFolder" Value="PATH=[INSTALLFOLDER]drawio-export" Execute='immediate' />
+    <CustomAction Id='DeleteFolder' BinaryKey='SetupHelperBinary' DllEntry='DeleteFolder' Execute='deferred' Impersonate='no' Return='check'/>
+    <Binary Id='SetupHelperBinary' SourceFile='$(var.SetupHelperBin)SetupHelper.CA.dll'/>
+  </Fragment>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="OfficeDrawIo" />
+
+        <Component Id="Registry_FriendlyName">
+          <RegistryValue Id="RegKey_FriendlyName" Root="HKLM"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Name="FriendlyName"
+                         Value="OfficeDrawIo Add-In"
+                         Type="string" KeyPath="yes" />
+        </Component>
+
+        <Component Id="Registry_Description">
+          <RegistryValue Id="RegKey_Description" Root="HKLM"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Name="Description"
+                         Value="OfficeDrawIo Add-In"
+                         Type="string" KeyPath="yes" />
+        </Component>
+
+        <Component Id="Registry_Manifest">
+          <RegistryValue Id="RegKey_Manifest" Root="HKLM"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Name="Manifest" Value="[INSTALLFOLDER]OfficeDrawIo.vsto|vstolocal"
+                         Type="string" KeyPath="yes" />
+        </Component>
+
+        <Component Id="Registry_LoadBehavior">
+          <RegistryValue Id="RegKey_LoadBehavior" Root="HKLM"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Name="LoadBehavior" Value="3"
+                         Type="integer" KeyPath="yes" />
+        </Component>
+
+      </Directory>
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="OfficeDrawIo" Guid="{73A8EBD0-DD7D-42E9-A94B-3983F2D8C524}">
+
+        <File Id="OfficeDrawIo_vsto" Name="OfficeDrawIo.vsto" Source="$(var.OfficeDrawIoBin)"></File>
+        <File Id="OfficeDrawIo_dll_manifest" Name="OfficeDrawIo.dll.manifest" Source="$(var.OfficeDrawIoBin)"></File>
+        <File Id="OfficeDrawIo_dll" Name="OfficeDrawIo.dll" Source="$(var.OfficeDrawIoBin)" />
+        <File Id="MSOfficeToolsCommon_dll" Name="Microsoft.Office.Tools.Common.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
+        <File Id="MSOfficeToolsWord_dll" Name="Microsoft.Office.Tools.Word.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
+
+        <File Id="drawio_export_7z" Name="drawio-export.zip" Source="drawio-export.zip"></File>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>
