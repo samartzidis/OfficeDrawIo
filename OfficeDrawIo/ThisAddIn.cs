@@ -165,25 +165,25 @@ namespace OfficeDrawIo
                     if (currentXmlPartData == drawioData)
                         return; // No need to change XMLPart
 
-                    if (!UpdateDrawIoDataPart(partId, drawioData))
-                        return;
-
-                    using (var process = new Process())
+                    using (new ScopedCursor(Cursors.WaitCursor))
                     {
-                        string stdErrData = string.Empty;
+                        if (!UpdateDrawIoDataPart(partId, drawioData))
+                            return;
 
-                        process.StartInfo.FileName = _settings.NodeJsExePath;
-                        process.StartInfo.WorkingDirectory = _drawioExportDir;
-                        process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
-                        process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                        process.StartInfo.RedirectStandardError = true;
-                        process.StartInfo.UseShellExecute = false;
-                        process.StartInfo.CreateNoWindow = true;
-                        process.ErrorDataReceived += (o, e) => { stdErrData += e.Data; };
-
-                        try
+                        using (var process = new Process())
                         {
-                            using (new ScopedCursor(Cursors.WaitCursor))
+                            string stdErrData = string.Empty;
+
+                            process.StartInfo.FileName = _settings.NodeJsExePath;
+                            process.StartInfo.WorkingDirectory = _drawioExportDir;
+                            process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
+                            process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                            process.StartInfo.RedirectStandardError = true;
+                            process.StartInfo.UseShellExecute = false;
+                            process.StartInfo.CreateNoWindow = true;
+                            process.ErrorDataReceived += (o, e) => { stdErrData += e.Data; };
+
+                            try
                             {
                                 var res = process.Start();
                                 if (res == false)
@@ -195,35 +195,35 @@ namespace OfficeDrawIo
                                 if (res == false)
                                     throw new ApplicationException("process timed out");
                             }
-                        }
-                        catch (Exception m)
-                        {
-                            MessageBox.Show($"Node.js: {m.Message}. Please check the Add-In settings.",
-                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-
-                        if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
-                        {
-                            MessageBox.Show($"Node.js: rendering failed (node.js exit code: {process.ExitCode}).\r\n{stdErrData}",
-                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                    }
-
-                    if (File.Exists(pngFilePath))
-                    {
-                        using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
-                        {
-                            foreach (var cc in ActiveVstoDocument.Controls)
+                            catch (Exception m)
                             {
-                                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
-                                {
-                                    ctrl.LockContents = false;
-                                    ctrl.Image = bitmap1;
-                                    ctrl.LockContents = true;
+                                MessageBox.Show($"Node.js: {m.Message}. Please check the Add-In settings.",
+                                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
 
-                                    break;
+                            if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
+                            {
+                                MessageBox.Show($"Node.js: rendering failed (node.js exit code: {process.ExitCode}).\r\n{stdErrData}",
+                                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+                        }
+
+                        if (File.Exists(pngFilePath))
+                        {
+                            using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
+                            {
+                                foreach (var cc in ActiveVstoDocument.Controls)
+                                {
+                                    if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
+                                    {
+                                        ctrl.LockContents = false;
+                                        ctrl.Image = bitmap1;
+                                        ctrl.LockContents = true;
+
+                                        break;
+                                    }
                                 }
                             }
                         }
