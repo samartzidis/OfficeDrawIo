@@ -15,9 +15,9 @@ namespace OfficeDrawIo
         {
             InitializeComponent();
 
-            Text = $"{AssemblyTitle} v.{Helpers.GetVersionString()}";
+            Text = $"Office Draw.io";
 
-            label1.Text = "Draw.io Add-In for Microsoft Office.\r\n(c)2019 George Samartzidis.";
+            label1.Text = $"Draw.io Add-In for Microsoft Office v.{Helpers.GetVersionString()}.\r\n(c)2019 George Samartzidis.";
         }
 
         #region Assembly Attribute Accessors

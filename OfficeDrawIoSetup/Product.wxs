@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-
-  <Product Id="{C0C8A46C-DC7F-45D3-92A8-225FDEC9937F}" 
-           Name="Office Draw.io" Language="1033" Version="1.0.0.0"
-           Manufacturer="George Samartzidis" UpgradeCode="5db2e48f-7431-4db0-be29-29a1649aa678">
+ 
+  <Product Id="*" 
+           Name="Office Draw.io !(bind.FileVersion.OfficeDrawIo_dll)" 
+           Language="1033"
+           Version="!(bind.FileVersion.OfficeDrawIo_dll)"
+           Manufacturer="George Samartzidis" 
+           UpgradeCode="5db2e48f-7431-4db0-be29-29a1649aa678">
 
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"  InstallPrivileges="elevated" AdminImage="yes" />
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
     <MediaTemplate EmbedCab="yes" />
+
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
 
 		<Feature Id="ProductFeature" Title="OfficeDrawIoSetup" Level="1">
@@ -31,7 +35,7 @@
       <Custom Action="ExtractArchive.SetProperty" After="CostFinalize" /> 
       <Custom Action="ExtractArchive" After="InstallFiles">(NOT Installed) AND (NOT REMOVE)</Custom>
       <Custom Action="DeleteFolder.SetProperty" After="CostFinalize" />
-      <Custom Action="DeleteFolder" Before="InstallFiles">(NOT UPGRADINGPRODUCTCODE) AND (REMOVE="ALL")</Custom>
+      <Custom Action="DeleteFolder" Before="InstallFiles">REMOVE="ALL"</Custom> <!-- (NOT UPGRADINGPRODUCTCODE) AND (REMOVE="ALL") -->
     </InstallExecuteSequence>
  
 	</Product>
@@ -93,7 +97,7 @@
         <File Id="MSOfficeToolsCommon_dll" Name="Microsoft.Office.Tools.Common.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
         <File Id="MSOfficeToolsWord_dll" Name="Microsoft.Office.Tools.Word.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
 
-        <File Id="drawio_export_7z" Name="drawio-export.zip" Source="drawio-export.zip"></File>
+        <File Id="drawio_export_7z" Name="drawio-export.zip" Source="obj\$(var.Configuration)\"></File>
       </Component>
     </ComponentGroup>
   </Fragment>

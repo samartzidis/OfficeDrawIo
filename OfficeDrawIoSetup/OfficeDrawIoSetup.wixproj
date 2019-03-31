@@ -62,10 +62,18 @@
 	<Target Name="AfterBuild">
 	</Target>
 	-->
+
+  <PropertyGroup>
+    <DrawIoExportArchivePath>obj\$(Configuration)\drawio-export.zip</DrawIoExportArchivePath>
+    <DrawIoExportSourcePath>..\OfficeDrawIo\bin\$(Configuration)\drawio-export</DrawIoExportSourcePath>
+  </PropertyGroup>
+
   <Target Name="BeforeBuild">
-    <Exec Command="7za.exe a -tzip -mx=9 -r drawio-export.zip ..\OfficeDrawIo\bin\$(Configuration)\drawio-export" Condition="!Exists('drawio-export.zip')" />
+    <Exec Command="7za.exe a -tzip -mx=9 -r $(DrawIoExportArchivePath) $(DrawIoExportSourcePath)" Condition="!Exists('$(DrawIoExportArchivePath)')" />
   </Target>
+
   <Target Name="CleanDrawIoExportArchive" AfterTargets="Clean">
-    <Delete Files="drawio-export.zip" Condition="Exists('drawio-export.zip')" />
+    <Delete Files="$(DrawIoExportArchivePath)" Condition="Exists('$(DrawIoExportArchivePath)')" />
   </Target>
+
 </Project>

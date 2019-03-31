@@ -218,6 +218,7 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
+    <None Include="drawio-export\package.json" />
     <None Include="OfficeDrawIo_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -264,6 +265,9 @@
     <None Include="Resources\icon.png" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="drawio-export\drawio\export3.html" />
+    <Content Include="drawio-export\drawio\js\app.min.js" />
+    <Content Include="drawio-export\index.js" />
     <Content Include="icon.ico" />
     <None Include="Resources\InformationSymbol_16x.png" />
   </ItemGroup>
@@ -306,10 +310,17 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
-  <Target Name="CopyBinDependencies" AfterTargets="AfterBuild">
+
+  <Target Name="BuildDrawIoExport" AfterTargets="AfterBuild">
+    <Exec Command="npm install" WorkingDirectory="$(OutputPath)\drawio-export" ContinueOnError="false"/>
+  </Target>
+
+  <Target Name="CopyBinDependencies" AfterTargets="AfterBuild" DependsOnTargets="BuildDrawIoExport">
     <ItemGroup>
       <SrcFiles Include="$(ProjectDir)\drawio-export\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(SrcFiles)" DestinationFolder="$(OutputPath)\drawio-export\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
+
+
 </Project>
