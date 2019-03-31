@@ -312,7 +312,7 @@
   </ProjectExtensions>
 
   <Target Name="BuildDrawIoExport" AfterTargets="AfterBuild">
-    <Exec Command="npm install" WorkingDirectory="$(OutputPath)\drawio-export" ContinueOnError="false"/>
+    <Exec Command="npm install" WorkingDirectory="drawio-export" ContinueOnError="false"/>
   </Target>
 
   <Target Name="CopyBinDependencies" AfterTargets="AfterBuild" DependsOnTargets="BuildDrawIoExport">
