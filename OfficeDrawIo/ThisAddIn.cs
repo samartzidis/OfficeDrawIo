@@ -25,6 +25,7 @@ namespace OfficeDrawIo
         private string _drawioExportDir;
         private Ribbon _ribbon;
         private FileSystemWatcher _watcher;
+        private object _addInNotifyChangedLock = new object();
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
@@ -87,6 +88,7 @@ namespace OfficeDrawIo
             var wnd = NativeWindowHelper.FindWindowsWithText(id).FirstOrDefault();
             if (wnd != IntPtr.Zero)
             {
+                NativeWindowHelper.RestoreFromMinimized(wnd);
                 NativeWindowHelper.SetForegroundWindow(wnd);
                 return;
             }
@@ -138,81 +140,100 @@ namespace OfficeDrawIo
         }
         public void AddInNotifyChanged(string partId)
         {
-            if (!File.Exists(_settings.NodeJsExePath))
-                return;
-
-            if (!ExistsDrawIoDataPart(partId))
-                return;
-
-            var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.drawio");
-            var pngFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.png");
-
-            string drawioData = null;
-            using (var fs = new FileStream(drawioFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (var sr = new StreamReader(fs, Encoding.Default))
-                drawioData = sr.ReadToEnd();
-
-            //Check if the XMLPart payload has really changed
-            var currentXmlPartData = GetDrawIoDataPart(partId);
-            if (currentXmlPartData == drawioData)
-                return; // No need to change XMLPart
-
-            if (!UpdateDrawIoDataPart(partId, drawioData))
-                return;
-
-            using (var process = new Process())
+            bool _lockTaken = false;            
+            try
             {
-                process.StartInfo.FileName = _settings.NodeJsExePath;
-                process.StartInfo.WorkingDirectory = _drawioExportDir;
-                process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
-                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
-
-                string stdErr;
-                try
+                Monitor.TryEnter(_addInNotifyChangedLock, ref _lockTaken);
+                if (_lockTaken)
                 {
-                    using (new ScopedCursor(Cursors.WaitCursor))
+                    if (!File.Exists(_settings.NodeJsExePath))
+                        return;
+
+                    if (!ExistsDrawIoDataPart(partId))
+                        return;
+
+                    var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.drawio");
+                    var pngFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.png");
+
+                    string drawioData = null;
+                    using (var fs = new FileStream(drawioFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var sr = new StreamReader(fs, Encoding.Default))
+                        drawioData = sr.ReadToEnd();
+
+                    //Check if the XMLPart payload has really changed
+                    var currentXmlPartData = GetDrawIoDataPart(partId);
+                    if (currentXmlPartData == drawioData)
+                        return; // No need to change XMLPart
+
+                    if (!UpdateDrawIoDataPart(partId, drawioData))
+                        return;
+
+                    using (var process = new Process())
                     {
-                        process.Start();
-                        process.WaitForExit();
+                        string stdErrData = string.Empty;
 
-                        stdErr = process.StandardError.ReadToEnd();
-                    }
-                }
-                catch (Exception m)
-                {
-                    MessageBox.Show($"Node.js process failed to start: {m.Message}. Please check the Add-In settings.",
-                        Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                        process.StartInfo.FileName = _settings.NodeJsExePath;
+                        process.StartInfo.WorkingDirectory = _drawioExportDir;
+                        process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
+                        process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                        process.StartInfo.RedirectStandardError = true;
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.CreateNoWindow = true;
+                        process.ErrorDataReceived += (o, e) => { stdErrData += e.Data; };
 
-                if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErr))
-                {
-                    MessageBox.Show($"Node.js rendering failed.\r\n\r\nDetails:\r\n{stdErr}",
-                        Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-            }
-
-            if (File.Exists(pngFilePath))
-            {
-                using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
-                {
-                    foreach (var cc in ActiveVstoDocument.Controls)
-                    {
-                        if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
+                        try
                         {
-                            ctrl.LockContents = false;
-                            ctrl.Image = bitmap1;
-                            ctrl.LockContents = true;
+                            using (new ScopedCursor(Cursors.WaitCursor))
+                            {
+                                var res = process.Start();
+                                if (res == false)
+                                    throw new ApplicationException("process failed to start");
 
-                            break;
+                                process.BeginErrorReadLine();
+
+                                res = process.WaitForExit(10 * 1000);
+                                if (res == false)
+                                    throw new ApplicationException("process timed out");
+                            }
+                        }
+                        catch (Exception m)
+                        {
+                            MessageBox.Show($"Node.js: {m.Message}. Please check the Add-In settings.",
+                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
+                        {
+                            MessageBox.Show($"Node.js: rendering failed (node.js exit code: {process.ExitCode}).\r\n{stdErrData}",
+                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                    }
+
+                    if (File.Exists(pngFilePath))
+                    {
+                        using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
+                        {
+                            foreach (var cc in ActiveVstoDocument.Controls)
+                            {
+                                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
+                                {
+                                    ctrl.LockContents = false;
+                                    ctrl.Image = bitmap1;
+                                    ctrl.LockContents = true;
+
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
+            }
+            finally
+            {
+                if (_lockTaken)
+                    Monitor.Exit(_addInNotifyChangedLock);
             }
         }
         public void About()

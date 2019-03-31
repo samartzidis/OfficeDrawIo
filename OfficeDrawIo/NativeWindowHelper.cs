@@ -10,6 +10,9 @@ namespace OfficeDrawIo
     internal static class NativeWindowHelper
     {
         [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int cmdShow);
+
+        [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hwnd);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
@@ -62,6 +65,12 @@ namespace OfficeDrawIo
             {
                 return GetWindowText(wnd).Contains(titleText);
             });
+        }
+
+        public static void RestoreFromMinimized(IntPtr hwnd)
+        {
+            const int SW_RESTORE = 9;
+            ShowWindow(hwnd, SW_RESTORE);
         }
     }
 }
