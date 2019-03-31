@@ -5,7 +5,7 @@ Allows embedding and editing Draw.io images in Microsoft Office Word documents.
 
 Technical Description
 -----------
-The Add-In is implemented as an Office VSTO Add-In in C# and some Node.js code (to perform accurate background offline rendering of the [Draw.io](https://about.draw.io/) file formats).
+The Add-In is implemented as an Office VSTO Add-In in C# and some Node.js code (to perform accurate background offline rendering of the Drawio file format).
 
 Runtime Requirements
 --------------------
