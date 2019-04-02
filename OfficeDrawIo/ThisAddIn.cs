@@ -48,6 +48,16 @@ namespace OfficeDrawIo
                 Directory.CreateDirectory(_userTmpFilesDir);
 
             CreateFileWatcher(_userTmpFilesDir);
+
+            // It may happen that there is an already active open document before the add-in has completed startup, so do this
+            try
+            {
+                if (Application.ActiveDocument != null) // throws if there is no ActiveDocument
+                    ManageDoc(Application.ActiveDocument);
+            }
+            catch
+            {
+            }           
         }
 
         public void SetRibbon(Ribbon ribbon)
@@ -57,6 +67,7 @@ namespace OfficeDrawIo
 
         public void AddDrawIoDiagramOnDocument()
         {
+            
             if (!ValidateDependencies())
                 return;
 
@@ -66,7 +77,9 @@ namespace OfficeDrawIo
             var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(part.Id);
             //pictureControl.Title = pictureControl1XMLPartID;
             ctrl.Title = $"Draw.io Diagram";
-            ctrl.Image = DrawFilledRectangle(128, 128);
+            //ctrl.Image = DrawFilledRectangle(128, 128);
+            using (var stream = Helpers.GetResourceStream("Resources.new.png"))
+                ctrl.Image = Image.FromStream(stream);
             ctrl.Tag = MakeDrawioTag(part.Id);
 
             ctrl.LockContents = true;
@@ -74,16 +87,17 @@ namespace OfficeDrawIo
             ctrl.Entering += PictureControl_Entering;
             ctrl.Exiting += PictureControl_Exiting;
             ctrl.Deleting += PictureControl_Deleting;
-            
+
         }
+
         public void EditDrawIoDiagramOnDocument()
         {
+            if (_selectedCtrl == null)
+                return;
+
             if (!ValidateDependencies())
                 return;
 
-            if (_selectedCtrl == null)
-                return;
-          
             var id = GetDrawioTagGuidPart(_selectedCtrl.Tag);
             var wnd = NativeWindowHelper.FindWindowsWithText(id).FirstOrDefault();
             if (wnd != IntPtr.Zero)
@@ -96,16 +110,17 @@ namespace OfficeDrawIo
             var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{id}.drawio");
             var drawioData = GetDrawIoDataPart(id);
             if (drawioData == null)
-                return;            
-            File.WriteAllText(drawioFilePath, drawioData);
-
-            var process = new Process();
-            process.StartInfo.FileName = _settings.DrawIoExePath;
-            process.StartInfo.Arguments = drawioFilePath;
-            process.StartInfo.WindowStyle = ProcessWindowStyle.Maximized;
+                return;
 
             try
             {
+                File.WriteAllText(drawioFilePath, drawioData);
+
+                var process = new Process();
+                process.StartInfo.FileName = _settings.DrawIoExePath;
+                process.StartInfo.Arguments = drawioFilePath;
+                process.StartInfo.WindowStyle = ProcessWindowStyle.Maximized;
+
                 process.Start();
             }
             catch (Exception m)
@@ -115,12 +130,13 @@ namespace OfficeDrawIo
             }
 
         }
+
         public void ExportDrawIoDiagram()
         {
-            if (!ValidateDependencies())
+            if (_selectedCtrl == null)
                 return;
 
-            if (_selectedCtrl == null)
+            if (!ValidateDependencies())
                 return;
 
             var dlg = new SaveFileDialog();
@@ -129,9 +145,18 @@ namespace OfficeDrawIo
 
             if (dlg.ShowDialog() == DialogResult.OK)
             {
-                var data = GetDrawIoDataPart(GetDrawioTagGuidPart(_selectedCtrl.Tag));
-                File.WriteAllText(dlg.FileName, data);
+                try
+                {
+                    var data = GetDrawIoDataPart(GetDrawioTagGuidPart(_selectedCtrl.Tag));
+                    File.WriteAllText(dlg.FileName, data);
+                }
+                catch (Exception m)
+                {
+                    MessageBox.Show($"Failed to export Draw.io document: {m.Message}.",
+                        Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
+            
         }
         public void Settings()
         {
@@ -140,101 +165,91 @@ namespace OfficeDrawIo
         }
         public void AddInNotifyChanged(string partId)
         {
-            bool _lockTaken = false;            
-            try
+            ActionTryEnter(_addInNotifyChangedLock, () =>
             {
-                Monitor.TryEnter(_addInNotifyChangedLock, ref _lockTaken);
-                if (_lockTaken)
+                if (!File.Exists(_settings.NodeJsExePath))
+                    return;
+
+                if (!ExistsDrawIoDataPart(partId))
+                    return;
+
+                var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.drawio");
+                var pngFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.png");
+
+                string drawioData = null;
+                using (var fs = new FileStream(drawioFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var sr = new StreamReader(fs, Encoding.Default))
+                    drawioData = sr.ReadToEnd();
+
+                //Check if the XMLPart payload has really changed
+                var currentXmlPartData = GetDrawIoDataPart(partId);
+                if (currentXmlPartData == drawioData)
+                    return; // No need to change XMLPart
+
+                using (new ScopedCursor(Cursors.WaitCursor))
                 {
-                    if (!File.Exists(_settings.NodeJsExePath))
+                    if (!UpdateDrawIoDataPart(partId, drawioData))
                         return;
 
-                    if (!ExistsDrawIoDataPart(partId))
-                        return;
-
-                    var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.drawio");
-                    var pngFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.png");
-
-                    string drawioData = null;
-                    using (var fs = new FileStream(drawioFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (var sr = new StreamReader(fs, Encoding.Default))
-                        drawioData = sr.ReadToEnd();
-
-                    //Check if the XMLPart payload has really changed
-                    var currentXmlPartData = GetDrawIoDataPart(partId);
-                    if (currentXmlPartData == drawioData)
-                        return; // No need to change XMLPart
-
-                    using (new ScopedCursor(Cursors.WaitCursor))
+                    using (var process = new Process())
                     {
-                        if (!UpdateDrawIoDataPart(partId, drawioData))
-                            return;
+                        string stdErrData = string.Empty;
 
-                        using (var process = new Process())
+                        process.StartInfo.FileName = _settings.NodeJsExePath;
+                        process.StartInfo.WorkingDirectory = _drawioExportDir;
+                        process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
+                        process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                        process.StartInfo.RedirectStandardError = true;
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.CreateNoWindow = true;
+                        process.ErrorDataReceived += (o, e) => { stdErrData += e.Data; };
+
+                        try
                         {
-                            string stdErrData = string.Empty;
+                            var res = process.Start();
+                            if (res == false)
+                                throw new ApplicationException("process failed to start");
 
-                            process.StartInfo.FileName = _settings.NodeJsExePath;
-                            process.StartInfo.WorkingDirectory = _drawioExportDir;
-                            process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
-                            process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                            process.StartInfo.RedirectStandardError = true;
-                            process.StartInfo.UseShellExecute = false;
-                            process.StartInfo.CreateNoWindow = true;
-                            process.ErrorDataReceived += (o, e) => { stdErrData += e.Data; };
+                            process.BeginErrorReadLine();
 
-                            try
-                            {
-                                var res = process.Start();
-                                if (res == false)
-                                    throw new ApplicationException("process failed to start");
-
-                                process.BeginErrorReadLine();
-
-                                res = process.WaitForExit(10 * 1000);
-                                if (res == false)
-                                    throw new ApplicationException("process timed out");
-                            }
-                            catch (Exception m)
-                            {
-                                MessageBox.Show($"Node.js: {m.Message}. Please check the Add-In settings.",
-                                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                return;
-                            }
-
-                            if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
-                            {
-                                MessageBox.Show($"Node.js: rendering failed (node.js exit code: {process.ExitCode}).\r\n{stdErrData}",
-                                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                return;
-                            }
+                            res = process.WaitForExit(10 * 1000);
+                            if (res == false)
+                                throw new ApplicationException("process timed out");
+                        }
+                        catch (Exception m)
+                        {
+                            MessageBox.Show($"Node.js: {m.Message}. Please check the Add-In settings.",
+                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
                         }
 
-                        if (File.Exists(pngFilePath))
+                        if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
                         {
-                            using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
-                            {
-                                foreach (var cc in ActiveVstoDocument.Controls)
-                                {
-                                    if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
-                                    {
-                                        ctrl.LockContents = false;
-                                        ctrl.Image = bitmap1;
-                                        ctrl.LockContents = true;
+                            MessageBox.Show($"Node.js: rendering failed (node.js exit code: {process.ExitCode}).\r\n{stdErrData}",
+                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                    }
 
-                                        break;
-                                    }
+                    if (File.Exists(pngFilePath))
+                    {
+                        using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
+                        {
+                            foreach (var cc in ActiveVstoDocument.Controls)
+                            {
+                                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
+                                {
+                                    ctrl.LockContents = false;
+                                    ctrl.Image = bitmap1;
+                                    ctrl.LockContents = true;
+
+                                    break;
                                 }
                             }
                         }
                     }
                 }
-            }
-            finally
-            {
-                if (_lockTaken)
-                    Monitor.Exit(_addInNotifyChangedLock);
-            }
+            });
         }
         public void About()
         {
@@ -248,8 +263,25 @@ namespace OfficeDrawIo
         }
 
         private void Application_DocumentOpen(Microsoft.Office.Interop.Word.Document doc)
+        {         
+            ManageDoc(doc);
+        }
+
+        private void ManageDoc(Microsoft.Office.Interop.Word.Document doc)
         {
-            // See: https://docs.microsoft.com/en-us/visualstudio/vsto/persisting-dynamic-controls-in-office-documents?view=vs-2017
+            if (doc == null)
+                return;
+
+            Microsoft.Office.Tools.Word.Document vstoDoc;
+            try
+            {
+                vstoDoc = Globals.Factory.GetVstoObject(doc);
+            }
+            catch
+            {
+                return;
+            }
+
             foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
             {
                 if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture)
@@ -257,17 +289,15 @@ namespace OfficeDrawIo
                     if (!IsValidDrawioTag(nativeControl.Tag))
                         continue;
 
-                    var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(nativeControl, nativeControl.Tag);
+                    // See: https://docs.microsoft.com/en-us/visualstudio/vsto/persisting-dynamic-controls-in-office-documents?view=vs-2017
+                    var ctrl = vstoDoc.Controls.AddPictureContentControl(nativeControl, nativeControl.Tag);
 
                     ctrl.LockContents = true;
 
                     ctrl.Entering += PictureControl_Entering;
                     ctrl.Exiting += PictureControl_Exiting;
-                    ctrl.Deleting += PictureControl_Deleting;
-
                 }
             }
-            
         }
 
         private bool IsValidDrawioTag(string tag)
@@ -289,6 +319,7 @@ namespace OfficeDrawIo
 
         private void Application_DocumentBeforeClose(Microsoft.Office.Interop.Word.Document doc, ref bool cancel)
         {
+            
             foreach (var cc in ActiveVstoDocument.Controls)
             {
                 if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl)
@@ -314,6 +345,7 @@ namespace OfficeDrawIo
                     catch { }
                 }
             }
+            
         }
 
         private Microsoft.Office.Tools.Word.Document ActiveVstoDocument
@@ -322,8 +354,15 @@ namespace OfficeDrawIo
             {
                 if (Application.ActiveDocument == null)
                     return null;
+                try
+                {
+                    return Globals.Factory.GetVstoObject(Application.ActiveDocument);
+                }
+                catch
+                {
+                }
 
-                return Globals.Factory.GetVstoObject(Application.ActiveDocument);
+                return null;
             }
         }        
 
@@ -439,7 +478,6 @@ namespace OfficeDrawIo
             {
                 _addin.AddInNotifyChanged(xmlPartId);
             }, null);
-
         }  
 
         private void Application_DocumentBeforeSave(Microsoft.Office.Interop.Word.Document doc, ref bool saveAsUi, ref bool cancel)
@@ -484,6 +522,24 @@ namespace OfficeDrawIo
             }
 
             return true;
+        }
+
+        private static void ActionTryEnter(object lck, Action action)
+        {
+            bool _lockTaken = false;
+            try
+            {
+                Monitor.TryEnter(lck, ref _lockTaken);
+                if (_lockTaken)
+                {
+                    action?.Invoke();
+                }
+            }
+            finally
+            {
+                if (_lockTaken)
+                    Monitor.Exit(lck);
+            }
         }
 
         #region VSTO generated code

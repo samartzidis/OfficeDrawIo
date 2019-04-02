@@ -73,9 +73,9 @@ namespace OfficeDrawIo.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap ASX_Edit_blue_16x {
+        internal static System.Drawing.Bitmap Edit_grey_16xMD {
             get {
-                object obj = ResourceManager.GetObject("ASX_Edit_blue_16x", resourceCulture);
+                object obj = ResourceManager.GetObject("Edit_grey_16xMD", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

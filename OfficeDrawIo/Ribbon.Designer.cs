@@ -78,7 +78,7 @@
             // 
             // btnEditDiagram
             // 
-            this.btnEditDiagram.Image = global::OfficeDrawIo.Properties.Resources.ASX_Edit_blue_16x;
+            this.btnEditDiagram.Image = global::OfficeDrawIo.Properties.Resources.Edit_grey_16xMD;
             this.btnEditDiagram.Label = "View/Edit";
             this.btnEditDiagram.Name = "btnEditDiagram";
             this.btnEditDiagram.ShowImage = true;
