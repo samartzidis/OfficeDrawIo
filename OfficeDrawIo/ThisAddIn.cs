@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -29,7 +30,7 @@ namespace OfficeDrawIo
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
-            TheWindowsFormsSynchronizationContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+            TheWindowsFormsSynchronizationContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();            
 
             _addin = this;
             _drawioExportDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "drawio-export");
@@ -41,14 +42,20 @@ namespace OfficeDrawIo
             });
 
             Application.DocumentBeforeSave += Application_DocumentBeforeSave;
-            Application.DocumentOpen += Application_DocumentOpen;
             Application.DocumentBeforeClose += Application_DocumentBeforeClose;
-            
+            Application.DocumentChange += Application_DocumentChange;
+
+
             if (!Directory.Exists(_userTmpFilesDir))
                 Directory.CreateDirectory(_userTmpFilesDir);
 
             CreateFileWatcher(_userTmpFilesDir);
 
+                   
+        }
+
+        private void Application_DocumentChange()
+        {
             // It may happen that there is an already active open document before the add-in has completed startup, so do this
             try
             {
@@ -57,7 +64,64 @@ namespace OfficeDrawIo
             }
             catch
             {
-            }           
+            }
+        }
+
+        private void ManageDoc(Microsoft.Office.Interop.Word.Document doc)
+        {
+            if (doc == null)
+                return;
+
+            Microsoft.Office.Tools.Word.Document vstoDoc;
+            try
+            {
+                vstoDoc = Globals.Factory.GetVstoObject(doc);
+            }
+            catch
+            {
+                return;
+            }
+           
+            foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
+            {
+                if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture)
+                {
+                    if (!IsValidDrawioTag(nativeControl.Tag))
+                        continue;
+
+                    // See: https://docs.microsoft.com/en-us/visualstudio/vsto/persisting-dynamic-controls-in-office-documents?view=vs-2017
+                    var ctrl = vstoDoc.Controls.AddPictureContentControl(nativeControl, nativeControl.Tag);
+
+                    ctrl.LockContents = true;
+
+                    ctrl.Entering += PictureControl_Entering;
+                    ctrl.Exiting += PictureControl_Exiting;
+                    ctrl.Deleting += PictureControl_Deleting;
+                }
+            }
+
+            vstoDoc.ContentControlAfterAdd += VstoDoc_ContentControlAfterAdd;
+        }
+
+        private void VstoDoc_ContentControlAfterAdd(Microsoft.Office.Interop.Word.ContentControl newContentControl, bool inUndoRedo)
+        {
+            if (IsValidDrawioTag(newContentControl.Tag)) // Did we copy an existing draw.io control?
+            {
+                // We need to clone the custom part
+                var id = GetDrawioTagGuidPart(newContentControl.Tag);
+                var data = GetDrawIoDataPart(id);
+                var part = AddDrawIoDataPart(data);
+
+                // Create VSTO control wrapper and add to document
+                var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(newContentControl, part.Id);
+
+                ctrl.Tag = MakeDrawioTag(part.Id);
+                ctrl.Title = $"Draw.io diagram {part.Id}";
+
+                ctrl.Entering += PictureControl_Entering;
+                ctrl.Exiting += PictureControl_Exiting;
+                ctrl.Deleting += PictureControl_Deleting;                
+            }            
         }
 
         public void SetRibbon(Ribbon ribbon)
@@ -66,8 +130,7 @@ namespace OfficeDrawIo
         }
 
         public void AddDrawIoDiagramOnDocument()
-        {
-            
+        {            
             if (!ValidateDependencies())
                 return;
 
@@ -75,9 +138,8 @@ namespace OfficeDrawIo
             var part = AddDrawIoDataPart(blankDrawIoXml);
 
             var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(part.Id);
-            //pictureControl.Title = pictureControl1XMLPartID;
-            ctrl.Title = $"Draw.io Diagram";
-            //ctrl.Image = DrawFilledRectangle(128, 128);
+            //ctrl.Title = $"Draw.io Diagram";
+            ctrl.Title = $"Draw.io diagram {part.Id}";            
             using (var stream = Helpers.GetResourceStream("Resources.new.png"))
                 ctrl.Image = Image.FromStream(stream);
             ctrl.Tag = MakeDrawioTag(part.Id);
@@ -86,8 +148,7 @@ namespace OfficeDrawIo
 
             ctrl.Entering += PictureControl_Entering;
             ctrl.Exiting += PictureControl_Exiting;
-            ctrl.Deleting += PictureControl_Deleting;
-
+            ctrl.Deleting += PictureControl_Deleting;            
         }
 
         public void EditDrawIoDiagramOnDocument()
@@ -158,11 +219,13 @@ namespace OfficeDrawIo
             }
             
         }
+
         public void Settings()
         {
             if (_sf.ShowDialog() == DialogResult.OK)
                 _settings.Save();
         }
+
         public void AddInNotifyChanged(string partId)
         {
             ActionTryEnter(_addInNotifyChangedLock, () =>
@@ -251,6 +314,7 @@ namespace OfficeDrawIo
                 }
             });
         }
+
         public void About()
         {
             var dlg = new AboutBox();
@@ -260,44 +324,6 @@ namespace OfficeDrawIo
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
             _watcher?.Dispose();
-        }
-
-        private void Application_DocumentOpen(Microsoft.Office.Interop.Word.Document doc)
-        {         
-            ManageDoc(doc);
-        }
-
-        private void ManageDoc(Microsoft.Office.Interop.Word.Document doc)
-        {
-            if (doc == null)
-                return;
-
-            Microsoft.Office.Tools.Word.Document vstoDoc;
-            try
-            {
-                vstoDoc = Globals.Factory.GetVstoObject(doc);
-            }
-            catch
-            {
-                return;
-            }
-
-            foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
-            {
-                if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture)
-                {
-                    if (!IsValidDrawioTag(nativeControl.Tag))
-                        continue;
-
-                    // See: https://docs.microsoft.com/en-us/visualstudio/vsto/persisting-dynamic-controls-in-office-documents?view=vs-2017
-                    var ctrl = vstoDoc.Controls.AddPictureContentControl(nativeControl, nativeControl.Tag);
-
-                    ctrl.LockContents = true;
-
-                    ctrl.Entering += PictureControl_Entering;
-                    ctrl.Exiting += PictureControl_Exiting;
-                }
-            }
         }
 
         private bool IsValidDrawioTag(string tag)
@@ -556,4 +582,6 @@ namespace OfficeDrawIo
         
         #endregion
     }
+
+    
 }
