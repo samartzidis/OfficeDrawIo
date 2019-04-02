@@ -111,13 +111,30 @@ namespace OfficeDrawIo
                 // We need to clone the custom part
                 var id = GetDrawioTagGuidPart(newContentControl.Tag);
                 var data = GetDrawIoDataPart(id);
-                var part = AddDrawIoDataPart(data);
 
-                // Create VSTO control wrapper and add to document
-                var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(newContentControl, part.Id);
+                Microsoft.Office.Core.CustomXMLPart part;
+                Microsoft.Office.Tools.Word.PictureContentControl ctrl;
+                if (data == null) // In case we fail to retrieve custom xml data part failback to an empty draw.io image
+                {
+                    var drawIo = Helpers.LoadStringResource("Resources.blank.drawio");
+                    part = AddDrawIoDataPart(drawIo);
+                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(newContentControl, part.Id);
+                    ctrl.LockContents = false;
+
+                    using (var stream = Helpers.GetResourceStream("Resources.new.png"))
+                        ctrl.Image = Image.FromStream(stream);
+                }
+                else
+                {
+                    part = AddDrawIoDataPart(data);                    
+                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(newContentControl, part.Id);
+                    ctrl.LockContents = false;
+                }
 
                 ctrl.Tag = MakeDrawioTag(part.Id);
                 ctrl.Title = $"Draw.io diagram {part.Id}";
+
+                ctrl.LockContents = true;
 
                 ctrl.Entering += PictureControl_Entering;
                 ctrl.Exiting += PictureControl_Exiting;
@@ -136,11 +153,18 @@ namespace OfficeDrawIo
             var part = AddDrawIoDataPart(blankDrawIoXml);
 
             var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(part.Id);
-            //ctrl.Title = $"Draw.io Diagram";
+            ctrl.LockContents = false;
+
             ctrl.Title = $"Draw.io diagram {part.Id}";            
             using (var stream = Helpers.GetResourceStream("Resources.new.png"))
                 ctrl.Image = Image.FromStream(stream);
             ctrl.Tag = MakeDrawioTag(part.Id);
+
+            //var bytes = File.ReadAllBytes(@"c:\temp\1.png");
+            //string base64 = System.Convert.ToBase64String(bytes);
+            //string xml = $"<xml><a>{base64}</a></xml>";
+            //var xmlPart = Application.ActiveDocument.CustomXMLParts.Add(xml);
+            //var res = ctrl.XMLMapping.SetMapping("/xml/a", "", xmlPart);
 
             ctrl.LockContents = true;
 
