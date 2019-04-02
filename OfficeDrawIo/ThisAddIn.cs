@@ -17,14 +17,13 @@ namespace OfficeDrawIo
     public partial class ThisAddIn
     {
         public SynchronizationContext TheWindowsFormsSynchronizationContext { get; private set; }
+        public Microsoft.Office.Tools.Word.PictureContentControl SelectedCtrl { get; private set; }
 
-        private Microsoft.Office.Tools.Word.PictureContentControl _selectedCtrl;
         private static ThisAddIn _addin;    
         private string _userTmpFilesDir;
         private SettingsAdapter _settings;
         private SettingsForm _sf;
         private string _drawioExportDir;
-        private Ribbon _ribbon;
         private FileSystemWatcher _watcher;
         private object _addInNotifyChangedLock = new object();
 
@@ -51,8 +50,10 @@ namespace OfficeDrawIo
 
             CreateFileWatcher(_userTmpFilesDir);
 
-                   
+            
         }
+
+        
 
         private void Application_DocumentChange()
         {
@@ -120,13 +121,10 @@ namespace OfficeDrawIo
 
                 ctrl.Entering += PictureControl_Entering;
                 ctrl.Exiting += PictureControl_Exiting;
-                ctrl.Deleting += PictureControl_Deleting;                
-            }            
-        }
+                ctrl.Deleting += PictureControl_Deleting;
 
-        public void SetRibbon(Ribbon ribbon)
-        {
-            _ribbon = ribbon;            
+                SelectedCtrl = ctrl;
+            }            
         }
 
         public void AddDrawIoDiagramOnDocument()
@@ -148,18 +146,20 @@ namespace OfficeDrawIo
 
             ctrl.Entering += PictureControl_Entering;
             ctrl.Exiting += PictureControl_Exiting;
-            ctrl.Deleting += PictureControl_Deleting;            
+            ctrl.Deleting += PictureControl_Deleting;
+
+            SelectedCtrl = ctrl;
         }
 
         public void EditDrawIoDiagramOnDocument()
         {
-            if (_selectedCtrl == null)
+            if (SelectedCtrl == null)
                 return;
 
             if (!ValidateDependencies())
                 return;
 
-            var id = GetDrawioTagGuidPart(_selectedCtrl.Tag);
+            var id = GetDrawioTagGuidPart(SelectedCtrl.Tag);
             var wnd = NativeWindowHelper.FindWindowsWithText(id).FirstOrDefault();
             if (wnd != IntPtr.Zero)
             {
@@ -194,7 +194,7 @@ namespace OfficeDrawIo
 
         public void ExportDrawIoDiagram()
         {
-            if (_selectedCtrl == null)
+            if (SelectedCtrl == null)
                 return;
 
             if (!ValidateDependencies())
@@ -208,7 +208,7 @@ namespace OfficeDrawIo
             {
                 try
                 {
-                    var data = GetDrawIoDataPart(GetDrawioTagGuidPart(_selectedCtrl.Tag));
+                    var data = GetDrawIoDataPart(GetDrawioTagGuidPart(SelectedCtrl.Tag));
                     File.WriteAllText(dlg.FileName, data);
                 }
                 catch (Exception m)
@@ -405,21 +405,12 @@ namespace OfficeDrawIo
 
         private void PictureControl_Exiting(object sender, Microsoft.Office.Tools.Word.ContentControlExitingEventArgs e)
         {
-            _selectedCtrl = null;
-
-            _ribbon.btnEditDiagram.Enabled = false;
-            _ribbon.btnExport.Enabled = false;
-            _ribbon.btnAddDiagram.Enabled = true;
-
+            SelectedCtrl = null;
         }
 
         private void PictureControl_Entering(object sender, Microsoft.Office.Tools.Word.ContentControlEnteringEventArgs e)
         {
-            _selectedCtrl = sender as Microsoft.Office.Tools.Word.PictureContentControl;
-
-            _ribbon.btnEditDiagram.Enabled = true;
-            _ribbon.btnExport.Enabled = true;
-            _ribbon.btnAddDiagram.Enabled = false;
+            SelectedCtrl = sender as Microsoft.Office.Tools.Word.PictureContentControl;
         }
 
         private void PictureControl_Deleting(object sender, Microsoft.Office.Tools.Word.ContentControlDeletingEventArgs e)

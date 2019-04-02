@@ -10,12 +10,19 @@ namespace OfficeDrawIo
     {
         private void MyRibbon_Load(object sender, RibbonUIEventArgs e)
         {
-            Globals.ThisAddIn.SetRibbon(this);
+            System.Windows.Forms.Application.Idle += Application_Idle;
 
             btnEditDiagram.Enabled = false;
             btnExport.Enabled = false;
+        }
 
-            
+        private void Application_Idle(object sender, EventArgs e)
+        {
+            var selectedCtrl = Globals.ThisAddIn.SelectedCtrl;
+
+            btnEditDiagram.Enabled = selectedCtrl != null;
+            btnExport.Enabled = selectedCtrl != null;
+            btnAddDiagram.Enabled = selectedCtrl == null;
         }
 
         private void btnAddDiagram_Click(object sender, RibbonControlEventArgs e)
