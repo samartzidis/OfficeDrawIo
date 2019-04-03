@@ -316,11 +316,13 @@
 
   <Target Name="BuildDrawIoExport" AfterTargets="AfterBuild">
     <PropertyGroup>
+      <NexeOutputDir>$(ProjectDir)bin\$(Configuration)\drawio-export\</NexeOutputDir>
       <NexeOutputPath>$(ProjectDir)bin\$(Configuration)\drawio-export\drawio-export.exe</NexeOutputPath>
     </PropertyGroup>
     <Exec Command="npm install" WorkingDirectory="drawio-export" ContinueOnError="false" />
     <!-- https://github.com/nexe/nexe -->
-    <Exec Command="nexe -i index.js -o $(NexeOutputPath) --ico ..\icon.ico" WorkingDirectory="drawio-export" ContinueOnError="false" Condition="!Exists('$(NexeOutputPath)')"/>
+    <MakeDir Directories="$(NexeOutputDir)" Condition="!Exists('$(NexeOutputDir)')" />
+    <Exec Command="nexe -i index.js -o $(NexeOutputPath) --ico ..\icon.ico" WorkingDirectory="drawio-export" ContinueOnError="false" Condition="!Exists('$(NexeOutputPath)')" />
   </Target>
 
   <Target Name="CopyBinDependencies" AfterTargets="AfterBuild" DependsOnTargets="BuildDrawIoExport">
