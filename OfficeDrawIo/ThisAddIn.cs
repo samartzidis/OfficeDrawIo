@@ -184,11 +184,15 @@ namespace OfficeDrawIo
                 return;
 
             var id = GetDrawioTagGuidPart(SelectedCtrl.Tag);
-            var wnd = NativeWindowHelper.FindWindowsWithText(id).FirstOrDefault();
+            if (id == null)
+                return;
+
+            var wnd = NativeWindowHelper.FindWindow($"{id}.drawio - draw.io");
             if (wnd != IntPtr.Zero)
             {
                 NativeWindowHelper.RestoreFromMinimized(wnd);
                 NativeWindowHelper.SetForegroundWindow(wnd);
+
                 return;
             }
 
