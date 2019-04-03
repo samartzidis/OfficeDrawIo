@@ -25,18 +25,6 @@ namespace OfficeDrawIo.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Program Files (x86)\\nodejs\\node.exe")]
-        public string NodeJsExePath {
-            get {
-                return ((string)(this["NodeJsExePath"]));
-            }
-            set {
-                this["NodeJsExePath"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("C:\\Program Files\\draw.io\\draw.io.exe")]
         public string DrawIoExePath {
             get {
@@ -44,15 +32,6 @@ namespace OfficeDrawIo.Properties {
             }
             set {
                 this["DrawIoExePath"] = value;
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://nodejs.org/")]
-        public string NodeJsUrl {
-            get {
-                return ((string)(this["NodeJsUrl"]));
             }
         }
         

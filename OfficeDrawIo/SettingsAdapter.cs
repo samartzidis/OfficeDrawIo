@@ -7,15 +7,6 @@ namespace OfficeDrawIo
 {
     class SettingsAdapter
     {
-        [Category("General"), DisplayName("Node.js Path"), Description("NodeJs executable file path. You may have to install Node.js from https://nodejs.org/ if that path does not exist on your PC.")]
-        [PathEditor.OfdParams("Executable files (*.exe)|*.exe", "Selection")]
-        [Editor(typeof(PathEditor), typeof(UITypeEditor))]
-        public string NodeJsExePath
-        {
-            get => Properties.Settings.Default.NodeJsExePath;
-            set => Properties.Settings.Default.NodeJsExePath = value;
-        }
-
         [Category("General"), DisplayName("Draw.io Path"), Description("Draw.io (desktop version) executable file path. You may have to install is from https://github.com/jgraph/drawio-desktop/releases if it does not exist on your PC.")]
         [PathEditor.OfdParams("Executable files (*.exe)|*.exe", "Selection")]
         [Editor(typeof(PathEditor), typeof(UITypeEditor))]

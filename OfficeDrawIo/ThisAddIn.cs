@@ -258,9 +258,6 @@ namespace OfficeDrawIo
         {
             ActionTryEnter(_addInNotifyChangedLock, () =>
             {
-                if (!File.Exists(_settings.NodeJsExePath))
-                    return;
-
                 if (!ExistsDrawIoDataPart(partId))
                     return;
 
@@ -286,9 +283,9 @@ namespace OfficeDrawIo
                     {
                         string stdErrData = string.Empty;
 
-                        process.StartInfo.FileName = _settings.NodeJsExePath;
+                        process.StartInfo.FileName = Path.Combine(_drawioExportDir, "drawio-export.exe");
                         process.StartInfo.WorkingDirectory = _drawioExportDir;
-                        process.StartInfo.Arguments = $"index.js \"{drawioFilePath}\" \"{pngFilePath}\"";
+                        process.StartInfo.Arguments = $"\"{drawioFilePath}\" \"{pngFilePath}\"";
                         process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                         process.StartInfo.RedirectStandardError = true;
                         process.StartInfo.UseShellExecute = false;
@@ -309,14 +306,14 @@ namespace OfficeDrawIo
                         }
                         catch (Exception m)
                         {
-                            MessageBox.Show($"Node.js: {m.Message}. Please check the Add-In settings.",
+                            MessageBox.Show($"drawio-export: {m.Message}. Please check the Add-In settings.",
                                 Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
                         if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
                         {
-                            MessageBox.Show($"Node.js: rendering failed (node.js exit code: {process.ExitCode}).\r\n{stdErrData}",
+                            MessageBox.Show($"drawio-export: rendering failed (exit code: {process.ExitCode}).\r\n{stdErrData}",
                                 Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
@@ -552,16 +549,6 @@ namespace OfficeDrawIo
                     Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 System.Diagnostics.Process.Start(Properties.Settings.Default.DrawIoUrl);
-
-                return false;
-            }
-
-            if (!File.Exists(_settings.NodeJsExePath))
-            {
-                MessageBox.Show($"Node.js not found. Please download and install it from {Properties.Settings.Default.NodeJsUrl}. If you believe it is installed, then please check the Add-In settings.",
-                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                System.Diagnostics.Process.Start(Properties.Settings.Default.NodeJsUrl);
 
                 return false;
             }

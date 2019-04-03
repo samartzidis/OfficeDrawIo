@@ -313,13 +313,21 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
+
   <Target Name="BuildDrawIoExport" AfterTargets="AfterBuild">
+    <PropertyGroup>
+      <NexeOutputPath>$(ProjectDir)bin\$(Configuration)\drawio-export\drawio-export.exe</NexeOutputPath>
+    </PropertyGroup>
     <Exec Command="npm install" WorkingDirectory="drawio-export" ContinueOnError="false" />
+    <!-- https://github.com/nexe/nexe -->
+    <Exec Command="nexe -i index.js -o $(NexeOutputPath) --ico ..\icon.ico" WorkingDirectory="drawio-export" ContinueOnError="false" Condition="!Exists('$(NexeOutputPath)')"/>
   </Target>
+
   <Target Name="CopyBinDependencies" AfterTargets="AfterBuild" DependsOnTargets="BuildDrawIoExport">
     <ItemGroup>
       <SrcFiles Include="$(ProjectDir)\drawio-export\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(SrcFiles)" DestinationFolder="$(OutputPath)\drawio-export\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
+
 </Project>
