@@ -10,7 +10,12 @@
 
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"  InstallPrivileges="elevated" AdminImage="yes" />
 
-		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<!--<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />-->
+    <Upgrade Id="5db2e48f-7431-4db0-be29-29a1649aa678">
+      <UpgradeVersion OnlyDetect="no" Property="PREVIOUSFOUND"
+                      Minimum="1.0.0.0"  IncludeMinimum="yes"
+                      Maximum="99.0.0.0" IncludeMaximum="no" />
+    </Upgrade>
 
     <MediaTemplate EmbedCab="yes" />
 
@@ -32,6 +37,7 @@
     <UIRef Id="WixUI_Minimal" />    
  
     <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallInitialize" />
       <Custom Action="ExtractArchive.SetProperty" After="CostFinalize" /> 
       <Custom Action="ExtractArchive" After="InstallFiles">(NOT Installed) AND (NOT REMOVE)</Custom>
       <Custom Action="DeleteFolder.SetProperty" After="CostFinalize" />
