@@ -38,21 +38,9 @@
  
     <InstallExecuteSequence>
       <RemoveExistingProducts After="InstallInitialize" />
-      <Custom Action="ExtractArchive.SetProperty" After="CostFinalize" /> 
-      <Custom Action="ExtractArchive" After="InstallFiles">(NOT Installed) AND (NOT REMOVE)</Custom>
-      <Custom Action="DeleteFolder.SetProperty" After="CostFinalize" />
-      <Custom Action="DeleteFolder" Before="InstallFiles">REMOVE="ALL"</Custom> <!-- (NOT UPGRADINGPRODUCTCODE) AND (REMOVE="ALL") -->
     </InstallExecuteSequence>
  
 	</Product>
-  
-  <Fragment>  
-    <CustomAction Id="ExtractArchive.SetProperty" Return="check" Property="ExtractArchive" Value="EXTRACTFOLDER=[INSTALLFOLDER];FILEPATH=[INSTALLFOLDER]drawio-export.zip" Execute='immediate' />
-    <CustomAction Id='ExtractArchive' BinaryKey='SetupHelperBinary' DllEntry='ExtractArchive' Execute='deferred' Impersonate='no' Return='check'/>
-    <CustomAction Id="DeleteFolder.SetProperty" Return="check" Property="DeleteFolder" Value="PATH=[INSTALLFOLDER]drawio-export" Execute='immediate' />
-    <CustomAction Id='DeleteFolder' BinaryKey='SetupHelperBinary' DllEntry='DeleteFolder' Execute='deferred' Impersonate='no' Return='check'/>
-    <Binary Id='SetupHelperBinary' SourceFile='$(var.SetupHelperBin)SetupHelper.CA.dll'/>
-  </Fragment>
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
@@ -103,7 +91,6 @@
         <File Id="MSOfficeToolsCommon_dll" Name="Microsoft.Office.Tools.Common.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
         <File Id="MSOfficeToolsWord_dll" Name="Microsoft.Office.Tools.Word.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
 
-        <File Id="drawio_export_7z" Name="drawio-export.zip" Source="obj\$(var.Configuration)\"></File>
       </Component>
     </ComponentGroup>
   </Fragment>

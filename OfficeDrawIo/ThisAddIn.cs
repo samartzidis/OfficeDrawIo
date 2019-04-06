@@ -3,9 +3,14 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -25,10 +30,13 @@ namespace OfficeDrawIo
         private SettingsForm _sf;
         private string _drawioExportDir;
         private FileSystemWatcher _watcher;
-        private object _addInNotifyChangedLock = new object();
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
+            Trace.Listeners.Add(new TraceListener());
+
+            Trace.WriteLine("ThisAddIn_Startup()");
+
             TheWindowsFormsSynchronizationContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();            
 
             _addin = this;
@@ -48,15 +56,13 @@ namespace OfficeDrawIo
             if (!Directory.Exists(_userTmpFilesDir))
                 Directory.CreateDirectory(_userTmpFilesDir);
 
-            CreateFileWatcher(_userTmpFilesDir);
-
-            
+            CreateFileWatcher(_userTmpFilesDir);  
         }
-
-        
 
         private void Application_DocumentChange()
         {
+            Trace.WriteLine("Application_DocumentChange()");
+
             // It may happen that there is an already active open document before the add-in has completed startup, so do this
             try
             {
@@ -73,21 +79,15 @@ namespace OfficeDrawIo
             if (doc == null)
                 return;
 
-            Microsoft.Office.Tools.Word.Document vstoDoc;
-            try
-            {
-                vstoDoc = Globals.Factory.GetVstoObject(doc);
-            }
-            catch
-            {
+            var vstoDoc = ActiveVstoDocument;
+            if (vstoDoc == null)
                 return;
-            }
-           
+
             foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
             {
                 if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture)
                 {
-                    if (!IsValidDrawioTag(nativeControl.Tag))
+                    if (!IsDrawioTag(nativeControl.Tag))
                         continue;
 
                     // See: https://docs.microsoft.com/en-us/visualstudio/vsto/persisting-dynamic-controls-in-office-documents?view=vs-2017
@@ -104,30 +104,36 @@ namespace OfficeDrawIo
             vstoDoc.ContentControlAfterAdd += VstoDoc_ContentControlAfterAdd;
         }
 
-        private void VstoDoc_ContentControlAfterAdd(Microsoft.Office.Interop.Word.ContentControl newContentControl, bool inUndoRedo)
+        private void VstoDoc_ContentControlAfterAdd(Microsoft.Office.Interop.Word.ContentControl addedControl, bool inUndoRedo)
         {
-            if (IsValidDrawioTag(newContentControl.Tag)) // Did we copy an existing draw.io control?
+            if (IsDrawioTag(addedControl.Tag)) // Did we copy from an existing draw.io specific PictureControl?
             {
-                // We need to clone the custom part
-                var id = GetDrawioTagGuidPart(newContentControl.Tag);
-                var data = GetDrawIoDataPart(id);
-
                 Microsoft.Office.Core.CustomXMLPart part;
                 Microsoft.Office.Tools.Word.PictureContentControl ctrl;
-                if (data == null) // In case we fail to retrieve custom xml data part failback to an empty draw.io image
+                              
+                var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+                var incomingId = GetDrawioTagId(addedControl.Tag);
+                var data = dataPartHelper.GetDrawIoDataPart(incomingId); // Get PictureControl associated Draw.io image    
+                
+                if (data == null) // If data is null it means that the incoming draw.io specific PictureControl is not from this document
                 {
-                    var drawIo = Helpers.LoadStringResource("Resources.blank.drawio");
-                    part = AddDrawIoDataPart(drawIo);
-                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(newContentControl, part.Id);
-                    ctrl.LockContents = false;
+                    var path = Path.Combine(_userTmpFilesDir, $"{incomingId}.png");
+                    data = Helpers.LoadBinaryResource("Resources.new.png");         
+                    part = dataPartHelper.AddDrawIoDataPart(data);
 
-                    using (var stream = Helpers.GetResourceStream("Resources.new.png"))
-                        ctrl.Image = Image.FromStream(stream);
+                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(part.Id);
+
+                    Image img;
+                    using (var stream = new MemoryStream(data, false))
+                        img = Image.FromStream(stream);
+
+                    ctrl.Image = img;
                 }
                 else
                 {
-                    part = AddDrawIoDataPart(data);                    
-                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(newContentControl, part.Id);
+                    part = dataPartHelper.AddDrawIoDataPart(data);
+                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(addedControl, part.Id);
+
                     ctrl.LockContents = false;
                 }
 
@@ -141,7 +147,7 @@ namespace OfficeDrawIo
                 ctrl.Deleting += PictureControl_Deleting;
 
                 SelectedCtrl = ctrl;
-            }            
+            }
         }
 
         public void AddDrawIoDiagramOnDocument()
@@ -149,23 +155,19 @@ namespace OfficeDrawIo
             if (!ValidateDependencies())
                 return;
 
-            var blankDrawIoXml = Helpers.LoadStringResource("Resources.blank.drawio");
-            var part = AddDrawIoDataPart(blankDrawIoXml);
+            var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
 
-            var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(part.Id);
-            ctrl.LockContents = false;
+            var data = Helpers.LoadBinaryResource("Resources.new.png");
+            Image img;
+            using (var stream = new MemoryStream(data, false))
+                img = Image.FromStream(stream);
+            var part = dataPartHelper.AddDrawIoDataPart(data);
+            var id = part.Id;
 
-            ctrl.Title = $"Draw.io diagram {part.Id}";            
-            using (var stream = Helpers.GetResourceStream("Resources.new.png"))
-                ctrl.Image = Image.FromStream(stream);
-            ctrl.Tag = MakeDrawioTag(part.Id);
-
-            //var bytes = File.ReadAllBytes(@"c:\temp\1.png");
-            //string base64 = System.Convert.ToBase64String(bytes);
-            //string xml = $"<xml><a>{base64}</a></xml>";
-            //var xmlPart = Application.ActiveDocument.CustomXMLParts.Add(xml);
-            //var res = ctrl.XMLMapping.SetMapping("/xml/a", "", xmlPart);
-
+            var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(id);
+            ctrl.Title = $"Draw.io diagram {id}";
+            ctrl.Tag = MakeDrawioTag(id);
+            ctrl.Image = img;
             ctrl.LockContents = true;
 
             ctrl.Entering += PictureControl_Entering;
@@ -177,13 +179,15 @@ namespace OfficeDrawIo
 
         public void EditDrawIoDiagramOnDocument()
         {
+            Trace.WriteLine("EditDrawIoDiagramOnDocument()");
+
             if (SelectedCtrl == null)
                 return;
 
             if (!ValidateDependencies())
                 return;
 
-            var id = GetDrawioTagGuidPart(SelectedCtrl.Tag);
+            var id = GetDrawioTagId(SelectedCtrl.Tag);
             if (id == null)
                 return;
 
@@ -196,14 +200,16 @@ namespace OfficeDrawIo
                 return;
             }
 
-            var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{id}.drawio");
-            var drawioData = GetDrawIoDataPart(id);
-            if (drawioData == null)
+            var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+
+            var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{id}.png");
+            var data = dataPartHelper.GetDrawIoDataPart(id);
+            if (data == null)
                 return;
 
             try
             {
-                File.WriteAllText(drawioFilePath, drawioData);
+                File.WriteAllBytes(drawioFilePath, data);
 
                 var process = new Process();
                 process.StartInfo.FileName = _settings.DrawIoExePath;
@@ -214,14 +220,16 @@ namespace OfficeDrawIo
             }
             catch (Exception m)
             {
-                MessageBox.Show($"Failed to start Draw.io Desktop application: {m.Message}.",
-                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                var msg = $"Failed to start Draw.io Desktop application for file {drawioFilePath}. Error: {m.Message}.";
+                MessageBox.Show(msg, Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
         }
 
         public void ExportDrawIoDiagram()
         {
+            Trace.WriteLine("ExportDrawIoDiagram()");
+
             if (SelectedCtrl == null)
                 return;
 
@@ -229,15 +237,17 @@ namespace OfficeDrawIo
                 return;
 
             var dlg = new SaveFileDialog();
-            dlg.Filter = "Draw.io files (*.drawio)|*.drawio|All files (*.*)|*.*";
-            dlg.DefaultExt = ".drawio";
+            dlg.Filter = "Draw.io files (*.png)|*.png|All files (*.*)|*.*";
+            dlg.DefaultExt = ".png";
 
             if (dlg.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    var data = GetDrawIoDataPart(GetDrawioTagGuidPart(SelectedCtrl.Tag));
-                    File.WriteAllText(dlg.FileName, data);
+                    var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+                    var data = dataPartHelper.GetDrawIoDataPart(GetDrawioTagId(SelectedCtrl.Tag));
+
+                    File.WriteAllBytes(dlg.FileName, data);
                 }
                 catch (Exception m)
                 {
@@ -254,90 +264,63 @@ namespace OfficeDrawIo
                 _settings.Save();
         }
 
-        public void AddInNotifyChanged(string partId)
+        public void AddInNotifyChanged(string id)
         {
-            ActionTryEnter(_addInNotifyChangedLock, () =>
+            Trace.WriteLine($"AddInNotifyChanged(partId = {id})");
+
+            try
             {
-                if (!ExistsDrawIoDataPart(partId))
+                var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+                if (!dataPartHelper.ExistsDrawIoDataPart(id))
                     return;
 
-                var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.drawio");
-                var pngFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.png");
+                var path = Path.Combine(_userTmpFilesDir, $"{id}.png");
+                if (!File.Exists(path))
+                    return;
 
-                string drawioData = null;
-                using (var fs = new FileStream(drawioFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                using (var sr = new StreamReader(fs, Encoding.Default))
-                    drawioData = sr.ReadToEnd();
+                var ctrl = FindPictureContentControlById(id);
+                if (ctrl == null)
+                    return;
 
-                //Check if the XMLPart payload has really changed
-                var currentXmlPartData = GetDrawIoDataPart(partId);
-                if (currentXmlPartData == drawioData)
-                    return; // No need to change XMLPart
-
-                using (new ScopedCursor(Cursors.WaitCursor))
+                byte[] data = null;
+                long lastModifiedTimestamp = 0;
+                try
                 {
-                    if (!UpdateDrawIoDataPart(partId, drawioData))
-                        return;
-
-                    using (var process = new Process())
-                    {
-                        string stdErrData = string.Empty;
-
-                        process.StartInfo.FileName = Path.Combine(_drawioExportDir, "drawio-export.exe");
-                        process.StartInfo.WorkingDirectory = _drawioExportDir;
-                        process.StartInfo.Arguments = $"\"{drawioFilePath}\" \"{pngFilePath}\"";
-                        process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                        process.StartInfo.RedirectStandardError = true;
-                        process.StartInfo.UseShellExecute = false;
-                        process.StartInfo.CreateNoWindow = true;
-                        process.ErrorDataReceived += (o, e) => { stdErrData += e.Data; };
-
-                        try
-                        {
-                            var res = process.Start();
-                            if (res == false)
-                                throw new ApplicationException("process failed to start");
-
-                            process.BeginErrorReadLine();
-
-                            res = process.WaitForExit(10 * 1000);
-                            if (res == false)
-                                throw new ApplicationException("process timed out");
-                        }
-                        catch (Exception m)
-                        {
-                            MessageBox.Show($"drawio-export: {m.Message}. Please check the Add-In settings.",
-                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-
-                        if (process.ExitCode != 0 || !string.IsNullOrEmpty(stdErrData))
-                        {
-                            MessageBox.Show($"drawio-export: rendering failed (exit code: {process.ExitCode}).\r\n{stdErrData}",
-                                Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                    }
-
-                    if (File.Exists(pngFilePath))
-                    {
-                        using (var bitmap1 = new System.Drawing.Bitmap(pngFilePath, true))
-                        {
-                            foreach (var cc in ActiveVstoDocument.Controls)
-                            {
-                                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagGuidPart(ctrl.Tag) == partId)
-                                {
-                                    ctrl.LockContents = false;
-                                    ctrl.Image = bitmap1;
-                                    ctrl.LockContents = true;
-
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    data = File.ReadAllBytes(path);
+                    lastModifiedTimestamp = File.GetLastWriteTime(path).Ticks;
                 }
-            });
+                catch(Exception m)
+                {
+                    Trace.WriteLine(m.Message);
+                    return; // File may be locked by Draw.io desktop app.
+                }
+
+                Trace.WriteLine($"New image data length = {data.Length}");
+                dataPartHelper.UpdateDrawIoDataPart(id, data);
+
+                Image img = null;
+                using (var stream = new MemoryStream(data, false))
+                    img = Image.FromStream(stream);
+
+                ctrl.LockContents = false;
+                ctrl.Image = img;
+                ctrl.LockContents = true;                
+            }
+            catch (Exception m)
+            {
+                MessageBox.Show($"Something went wrong while updating the the Draw.io diagram.\r\nError details:\r\n{m}",
+                            Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+        }
+
+        private Microsoft.Office.Tools.Word.PictureContentControl FindPictureContentControlById(string id)
+        {
+            foreach (var cc in ActiveVstoDocument.Controls)
+                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagId(ctrl.Tag) == id)
+                    return ctrl;
+
+            return null;
         }
 
         public void About()
@@ -351,14 +334,14 @@ namespace OfficeDrawIo
             _watcher?.Dispose();
         }
 
-        private bool IsValidDrawioTag(string tag)
+        private bool IsDrawioTag(string tag)
         {
             return tag != null && tag.StartsWith("OfficeDrawIo:");
         }
 
-        private string GetDrawioTagGuidPart(string tag)
+        private string GetDrawioTagId(string tag)
         {
-            if (!IsValidDrawioTag(tag))
+            if (!IsDrawioTag(tag))
                 return null;
             return tag.Split(':')[1];
         }
@@ -370,23 +353,14 @@ namespace OfficeDrawIo
 
         private void Application_DocumentBeforeClose(Microsoft.Office.Interop.Word.Document doc, ref bool cancel)
         {
-            
+            // Cleanup temp files
             foreach (var cc in ActiveVstoDocument.Controls)
             {
                 if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl)
                 {
-                    var partId = GetDrawioTagGuidPart(ctrl.Tag);
+                    var partId = GetDrawioTagId(ctrl.Tag);
                     if (partId == null)
                         continue;
-
-                    try
-                    {
-                        var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.drawio");
-                        if (File.Exists(drawioFilePath))
-                            File.Delete(drawioFilePath);
-                    }
-                    catch { }
-
                     try
                     {
                         var imageFilePath = Path.Combine(_userTmpFilesDir, $"{partId}.png");
@@ -417,16 +391,6 @@ namespace OfficeDrawIo
             }
         }        
 
-        private Bitmap DrawFilledRectangle(int x, int y)
-        {
-            var bmp = new Bitmap(x, y);
-            using (Graphics graph = Graphics.FromImage(bmp))
-            {
-                var imageSize = new Rectangle(0, 0, x, y);
-                graph.FillRectangle(Brushes.LightBlue, imageSize);
-            }
-            return bmp;
-        }
 
         private void PictureControl_Exiting(object sender, Microsoft.Office.Tools.Word.ContentControlExitingEventArgs e)
         {
@@ -440,60 +404,8 @@ namespace OfficeDrawIo
 
         private void PictureControl_Deleting(object sender, Microsoft.Office.Tools.Word.ContentControlDeletingEventArgs e)
         {
-            // Commented out to support undo operations. Deleting in Application_DocumentBeforeSave instead.
-            //var ctrl = (Microsoft.Office.Tools.Word.PictureContentControl)sender;
-            //DeleteDrawIoDataPart(GetDrawioTagGuidPart(ctrl.Tag));
+
         }
-
-        private bool UpdateDrawIoDataPart(string id, string data)
-        {
-            var xmlPart = Application.ActiveDocument.CustomXMLParts.SelectByID(id);
-            if (xmlPart == null)
-                return false;
-
-            var base64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(data));
-            xmlPart.DocumentElement.FirstChild.NodeValue = base64;
-
-            return true;
-        }
-
-        private bool ExistsDrawIoDataPart(string id)
-        {
-            var xmlPart = Application.ActiveDocument.CustomXMLParts.SelectByID(id);
-            return xmlPart != null;
-        }
-
-        private Microsoft.Office.Core.CustomXMLPart AddDrawIoDataPart(string data)
-        {
-            var base64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(data));
-            var xmlPart = Application.ActiveDocument.CustomXMLParts.Add($"<OfficeDrawIo v=\"1\">{base64}</OfficeDrawIo>");
-            return xmlPart;
-        }
-
-        private string GetDrawIoDataPart(string id)
-        {
-            var xmlPart = Application.ActiveDocument.CustomXMLParts.SelectByID(id);
-            if (xmlPart == null)
-                return null;
-
-            var xdoc = new XmlDocument();
-            xdoc.LoadXml(xmlPart.XML);
-
-            var base64EncodedBytes = System.Convert.FromBase64String(xdoc.InnerText);
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
-        }
-
-        private void DeleteDrawIoDataPart(string id)
-        {
-            foreach (Microsoft.Office.Core.CustomXMLPart part in ActiveVstoDocument.CustomXMLParts)
-            {
-                if (part.Id == id)
-                {
-                    part.Delete();
-                    break;
-                }
-            }
-        }  
 
         private FileSystemWatcher CreateFileWatcher(string path)
         {
@@ -502,7 +414,7 @@ namespace OfficeDrawIo
 
             _watcher = new FileSystemWatcher(path);
             _watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
-            _watcher.Filter = "*.drawio";
+            _watcher.Filter = "*.png";
             _watcher.IncludeSubdirectories = false;
             _watcher.Changed += OnFileChanged;
             //watcher.Created += OnFileChanged;
@@ -524,20 +436,33 @@ namespace OfficeDrawIo
 
         private void Application_DocumentBeforeSave(Microsoft.Office.Interop.Word.Document doc, ref bool saveAsUi, ref bool cancel)
         {
+            //foreach (var ctrl in ActiveVstoDocument.Controls)
+            //{
+            //    if (ctrl is Microsoft.Office.Tools.Word.PictureContentControl pcc)
+            //    {
+            //        RemoveCommentHeader(pcc.Image);
+            //    }
+            //}
+
             // Get list of all Draw.io PictureContentControls in document
             var ids = new HashSet<string>();
             foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
             {
-                if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture 
-                    && IsValidDrawioTag(nativeControl.Tag))
-                    ids.Add(GetDrawioTagGuidPart(nativeControl.Tag));
+                if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture
+                    && IsDrawioTag(nativeControl.Tag))
+                {
+                    ids.Add(GetDrawioTagId(nativeControl.Tag));
+                }
             }
 
             // Clean up unreferenced OfficeDrawIo data parts
             foreach (Microsoft.Office.Core.CustomXMLPart part in Application.ActiveDocument.CustomXMLParts)
             {
-                if(!ids.Contains(part.Id) && part.XML != null && part.XML.TrimStart().StartsWith("<OfficeDrawIo"))
+                if (!ids.Contains(part.Id) && part.XML != null && part.XML.TrimStart().StartsWith("<OfficeDrawIo"))
+                {
+                    Trace.WriteLine($"Deleting orphaned Draw.io data part id: {part.Id}");
                     part.Delete();
+                }
             }
         }
 
@@ -548,7 +473,7 @@ namespace OfficeDrawIo
                 MessageBox.Show($"Draw.io Desktop not found. Please download and install it from {Properties.Settings.Default.DrawIoUrl}. If you believe it is installed, then please check the Add-In settings.",
                     Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                System.Diagnostics.Process.Start(Properties.Settings.Default.DrawIoUrl);
+                Process.Start(Properties.Settings.Default.DrawIoUrl);
 
                 return false;
             }
@@ -573,6 +498,8 @@ namespace OfficeDrawIo
                     Monitor.Exit(lck);
             }
         }
+
+        
 
         #region VSTO generated code
 

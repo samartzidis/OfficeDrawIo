@@ -39,16 +39,6 @@
   <ItemGroup>
     <Content Include="License.rtf" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SetupHelper\SetupHelper.csproj">
-      <Name>SetupHelper</Name>
-      <Project>{b7b110b1-2bd7-45bf-92de-9bc0ae58bc4b}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(WixTargetsPath)" Condition=" '$(WixTargetsPath)' != '' " />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets" Condition=" '$(WixTargetsPath)' == '' AND Exists('$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets') " />
   <Target Name="EnsureWixToolsetInstalled" Condition=" '$(WixTargetsImported)' != 'true' ">
@@ -62,18 +52,5 @@
 	<Target Name="AfterBuild">
 	</Target>
 	-->
-
-  <PropertyGroup>
-    <DrawIoExportArchivePath>obj\$(Configuration)\drawio-export.zip</DrawIoExportArchivePath>
-    <DrawIoExportSourcePath>..\OfficeDrawIo\bin\$(Configuration)\drawio-export</DrawIoExportSourcePath>
-  </PropertyGroup>
-
-  <Target Name="BeforeBuild">
-    <Exec Command="7za.exe a -tzip -mx=9 -r $(DrawIoExportArchivePath) $(DrawIoExportSourcePath)" Condition="!Exists('$(DrawIoExportArchivePath)')" />
-  </Target>
-
-  <Target Name="CleanDrawIoExportArchive" AfterTargets="Clean">
-    <Delete Files="$(DrawIoExportArchivePath)" Condition="Exists('$(DrawIoExportArchivePath)')" />
-  </Target>
-
+ 
 </Project>

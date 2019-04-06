@@ -1,9 +1,0 @@
-{
-  "name": "drawio-export",
-  "main": "index.js",
-  "dependencies": {
-    "puppeteer": "^1.13.0",
-    "yargs": "^11.0.0"
-  },
-  "bin": "index.js"
-}

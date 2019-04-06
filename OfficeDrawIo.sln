@@ -8,10 +8,7 @@ EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "OfficeDrawIoSetup", "OfficeDrawIoSetup\OfficeDrawIoSetup.wixproj", "{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}"
 	ProjectSection(ProjectDependencies) = postProject
 		{648D4094-C75E-462E-A38C-2F9368F6E323} = {648D4094-C75E-462E-A38C-2F9368F6E323}
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B} = {B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SetupHelper", "SetupHelper\SetupHelper.csproj", "{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,14 +30,6 @@ Global
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Debug|x86.ActiveCfg = Debug|x86
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Release|Any CPU.ActiveCfg = Release|x86
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Release|x86.ActiveCfg = Release|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Debug|Any CPU.Build.0 = Debug|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Debug|x86.ActiveCfg = Debug|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Debug|x86.Build.0 = Debug|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Release|Any CPU.ActiveCfg = Release|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Release|Any CPU.Build.0 = Release|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Release|x86.ActiveCfg = Release|x86
-		{B7B110B1-2BD7-45BF-92DE-9BC0AE58BC4B}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

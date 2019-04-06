@@ -187,7 +187,9 @@
     <Compile Include="AboutBox.Designer.cs">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </Compile>
+    <Compile Include="DataPartHelper.cs" />
     <Compile Include="Helpers.cs" />
+    <Compile Include="ImagePropertiesHelper.cs" />
     <Compile Include="Ribbon.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -198,6 +200,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="NativeWindowHelper.cs" />
+    <Compile Include="TraceListener.cs" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </EmbeddedResource>
@@ -218,7 +221,6 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
-    <None Include="drawio-export\package.json" />
     <None Include="OfficeDrawIo_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -240,7 +242,6 @@
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>
     </Compile>
-    <EmbeddedResource Include="Resources\blank.drawio" />
     <None Include="ThisAddIn.Designer.xml">
       <DependentUpon>ThisAddIn.cs</DependentUpon>
     </None>
@@ -265,13 +266,9 @@
     <None Include="Resources\icon.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="drawio-export\drawio\export3.html" />
-    <Content Include="drawio-export\drawio\js\app.min.js" />
-    <Content Include="drawio-export\index.js" />
     <Content Include="icon.ico" />
     <EmbeddedResource Include="Resources\new.png" />
     <None Include="Resources\Edit_grey_16xMD.png" />
-    <None Include="Resources\Edit_grey_32xMD.png" />
     <None Include="Resources\InformationSymbol_16x.png" />
   </ItemGroup>
   <PropertyGroup>
@@ -313,23 +310,4 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
-
-  <Target Name="BuildDrawIoExport" AfterTargets="AfterBuild">
-    <PropertyGroup>
-      <NexeOutputDir>$(ProjectDir)bin\$(Configuration)\drawio-export\</NexeOutputDir>
-      <NexeOutputPath>$(ProjectDir)bin\$(Configuration)\drawio-export\drawio-export.exe</NexeOutputPath>
-    </PropertyGroup>
-    <Exec Command="npm install" WorkingDirectory="drawio-export" ContinueOnError="false" />
-    <!-- https://github.com/nexe/nexe -->
-    <MakeDir Directories="$(NexeOutputDir)" Condition="!Exists('$(NexeOutputDir)')" />
-    <Exec Command="nexe -i index.js -o $(NexeOutputPath) --ico ..\icon.ico" WorkingDirectory="drawio-export" ContinueOnError="false" Condition="!Exists('$(NexeOutputPath)')" />
-  </Target>
-
-  <Target Name="CopyBinDependencies" AfterTargets="AfterBuild" DependsOnTargets="BuildDrawIoExport">
-    <ItemGroup>
-      <SrcFiles Include="$(ProjectDir)\drawio-export\**\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(SrcFiles)" DestinationFolder="$(OutputPath)\drawio-export\%(RecursiveDir)" SkipUnchangedFiles="true" />
-  </Target>
-
 </Project>
