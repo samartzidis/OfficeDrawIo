@@ -34,10 +34,7 @@ namespace OfficeDrawIo
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
             Trace.Listeners.Add(new TraceListener());
-
             Trace.WriteLine("ThisAddIn_Startup()");
-
-            TheWindowsFormsSynchronizationContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();            
 
             _addin = this;
             _drawioExportDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "drawio-export");
@@ -48,13 +45,14 @@ namespace OfficeDrawIo
                 Properties.Settings.Default.Reset();
             });
 
-            Application.DocumentBeforeSave += Application_DocumentBeforeSave;
-            Application.DocumentBeforeClose += Application_DocumentBeforeClose;
-            Application.DocumentChange += Application_DocumentChange;
-
+            TheWindowsFormsSynchronizationContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();            
 
             if (!Directory.Exists(_userTmpFilesDir))
                 Directory.CreateDirectory(_userTmpFilesDir);
+
+            Application.DocumentBeforeSave += Application_DocumentBeforeSave;
+            Application.DocumentBeforeClose += Application_DocumentBeforeClose;
+            Application.DocumentChange += Application_DocumentChange;
 
             CreateFileWatcher(_userTmpFilesDir);  
         }
@@ -63,14 +61,14 @@ namespace OfficeDrawIo
         {
             Trace.WriteLine("Application_DocumentChange()");
 
-            // It may happen that there is an already active open document before the add-in has completed startup, so do this
             try
             {
-                if (Application.ActiveDocument != null) // throws if there is no ActiveDocument
+                if (Application.ActiveDocument != null)
                     ManageDoc(Application.ActiveDocument);
             }
             catch
             {
+                // It may happen that there is an already active open document before the add-in has completed startup
             }
         }
 
@@ -136,8 +134,6 @@ namespace OfficeDrawIo
 
                     ctrl.LockContents = false;
                 }
-
-                
 
                 ctrl.Tag = MakeDrawioTag(part.Id);
                 ctrl.Title = $"Draw.io diagram {part.Id}";
