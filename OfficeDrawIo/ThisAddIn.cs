@@ -13,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Linq;
@@ -33,6 +34,7 @@ namespace OfficeDrawIo
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
+            Trace.Listeners.Clear();
             Trace.Listeners.Add(new TraceListener());
             Trace.WriteLine("ThisAddIn_Startup()");
 
@@ -53,8 +55,14 @@ namespace OfficeDrawIo
             Application.DocumentBeforeSave += Application_DocumentBeforeSave;
             Application.DocumentBeforeClose += Application_DocumentBeforeClose;
             Application.DocumentChange += Application_DocumentChange;
+            Application.WindowBeforeDoubleClick += Application_WindowBeforeDoubleClick;
 
             CreateFileWatcher(_userTmpFilesDir);  
+        }
+
+        private void Application_WindowBeforeDoubleClick(Microsoft.Office.Interop.Word.Selection sel, ref bool cancel)
+        {
+            
         }
 
         private void Application_DocumentChange()
@@ -77,19 +85,16 @@ namespace OfficeDrawIo
             if (doc == null)
                 return;
 
-            var vstoDoc = ActiveVstoDocument;
-            if (vstoDoc == null)
-                return;
-
             foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
             {
                 if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture)
                 {
                     if (!IsDrawioTag(nativeControl.Tag))
                         continue;
+                    var partId = GetOfficeDrawioPartId(nativeControl.Tag);
 
                     // See: https://docs.microsoft.com/en-us/visualstudio/vsto/persisting-dynamic-controls-in-office-documents?view=vs-2017
-                    var ctrl = vstoDoc.Controls.AddPictureContentControl(nativeControl, nativeControl.Tag);
+                    var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(nativeControl, partId);
 
                     ctrl.LockContents = true;
 
@@ -99,51 +104,66 @@ namespace OfficeDrawIo
                 }
             }
 
-            vstoDoc.ContentControlAfterAdd += VstoDoc_ContentControlAfterAdd;
+            ActiveVstoDocument.ContentControlAfterAdd += VstoDoc_ContentControlAfterAdd;
         }
 
         private void VstoDoc_ContentControlAfterAdd(Microsoft.Office.Interop.Word.ContentControl addedControl, bool inUndoRedo)
         {
-            if (IsDrawioTag(addedControl.Tag)) // Did we copy from an existing draw.io specific PictureControl?
+            if (IsDrawioTag(addedControl.Tag)) // Did we add into document from an already existing draw.io specific PictureControl? (copy-paste)
             {
                 Microsoft.Office.Core.CustomXMLPart part;
                 Microsoft.Office.Tools.Word.PictureContentControl ctrl;
                               
                 var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
-                var incomingId = GetDrawioTagId(addedControl.Tag);
-                var data = dataPartHelper.GetDrawIoDataPart(incomingId); // Get PictureControl associated Draw.io image    
+
+                var addedControlId = GetOfficeDrawioPartId(addedControl.Tag);
+                var data = dataPartHelper.GetDrawIoDataPart(addedControlId); // Get draw.io data from this documents draw.io data part collection   
                 
-                if (data == null) // If data is null it means that the incoming draw.io specific PictureControl is not from this document
+                if (data == null) // If data is null it means that the added draw.io PictureControl is not from this document
                 {
-                    var path = Path.Combine(_userTmpFilesDir, $"{incomingId}.png");
-                    data = Helpers.LoadBinaryResource("Resources.new.png");         
-                    part = dataPartHelper.AddDrawIoDataPart(data);
-
-                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(part.Id);
-
+                    // Create draw.io data from new image template
+                    var path = Path.Combine(_userTmpFilesDir, $"{addedControlId}.png");
+                    data = Helpers.LoadBinaryResource("Resources.new.png");
                     Image img;
                     using (var stream = new MemoryStream(data, false))
                         img = Image.FromStream(stream);
 
+                    // Create VSTO PictureControl with associated data part
+                    part = dataPartHelper.AddDrawIoDataPart(data);
+                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(addedControl, part.Id); ctrl.LockContents = false;
+                    ctrl.Tag = MakeOfficeDrawioTag(part.Id);
+
+                    /*
+                    // If we received draw.io data in comment header then use that for the data part
+                    data = ImagePropertiesHelper.GetComment(ctrl.Image);
+                    if (data != null)
+                    {
+                        dataPartHelper.UpdateDrawIoDataPart(part.Id, data);
+
+                        using (var stream = new MemoryStream(data, false))
+                            img = Image.FromStream(stream);
+                    }
+                    */
+
                     ctrl.Image = img;
                 }
-                else
+                else // Copied-pasted within the same document
                 {
-                    part = dataPartHelper.AddDrawIoDataPart(data);
-                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(addedControl, part.Id);
+                    part = dataPartHelper.AddDrawIoDataPart(data); // Clone existing data into new part
+                    ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(addedControl, part.Id); ctrl.LockContents = false;
+                    ctrl.Tag = MakeOfficeDrawioTag(part.Id);
 
-                    ctrl.LockContents = false;
+                    // Set control image's comment header to contain draw.io data as well
+                    //ImagePropertiesHelper.SetComment(ctrl.Image, data);  
                 }
 
-                ctrl.Tag = MakeDrawioTag(part.Id);
                 ctrl.Title = $"Draw.io diagram {part.Id}";
-
-                ctrl.LockContents = true;
 
                 ctrl.Entering += PictureControl_Entering;
                 ctrl.Exiting += PictureControl_Exiting;
                 ctrl.Deleting += PictureControl_Deleting;
 
+                ctrl.LockContents = true;
                 SelectedCtrl = ctrl;
             }
         }
@@ -161,12 +181,16 @@ namespace OfficeDrawIo
                 Image img;
                 using (var stream = new MemoryStream(data, false))
                     img = Image.FromStream(stream);
-                var part = dataPartHelper.AddDrawIoDataPart(data);
-                var id = part.Id;
 
-                var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(id);
-                ctrl.Title = $"Draw.io diagram {id}";
-                ctrl.Tag = MakeDrawioTag(id);
+                // Set control image's comment header to contain draw.io data as well
+                //ImagePropertiesHelper.SetComment(img, data);
+
+                var part = dataPartHelper.AddDrawIoDataPart(data);
+                var partId = part.Id;
+
+                var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(partId); ctrl.LockContents = false;
+                ctrl.Title = $"Draw.io diagram {partId}";
+                ctrl.Tag = MakeOfficeDrawioTag(partId);
                 ctrl.Image = img;
                 ctrl.LockContents = true;
 
@@ -193,7 +217,7 @@ namespace OfficeDrawIo
             if (!ValidateDependencies())
                 return;
 
-            var id = GetDrawioTagId(SelectedCtrl.Tag);
+            var id = GetOfficeDrawioPartId(SelectedCtrl.Tag);
             if (id == null)
                 return;
 
@@ -251,7 +275,7 @@ namespace OfficeDrawIo
                 try
                 {
                     var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
-                    var data = dataPartHelper.GetDrawIoDataPart(GetDrawioTagId(SelectedCtrl.Tag));
+                    var data = dataPartHelper.GetDrawIoDataPart(GetOfficeDrawioPartId(SelectedCtrl.Tag));
 
                     File.WriteAllBytes(dlg.FileName, data);
                 }
@@ -308,6 +332,9 @@ namespace OfficeDrawIo
                 using (var stream = new MemoryStream(data, false))
                     img = Image.FromStream(stream);
 
+                // Set control image's comment header to contain draw.io data as well
+                //ImagePropertiesHelper.SetComment(img, data);
+
                 ctrl.LockContents = false;
                 ctrl.Image = img;
                 ctrl.LockContents = true;                
@@ -323,7 +350,7 @@ namespace OfficeDrawIo
         private Microsoft.Office.Tools.Word.PictureContentControl FindPictureContentControlById(string id)
         {
             foreach (var cc in ActiveVstoDocument.Controls)
-                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetDrawioTagId(ctrl.Tag) == id)
+                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && GetOfficeDrawioPartId(ctrl.Tag) == id)
                     return ctrl;
 
             return null;
@@ -345,26 +372,27 @@ namespace OfficeDrawIo
             return tag != null && tag.StartsWith("OfficeDrawIo:");
         }
 
-        private string GetDrawioTagId(string tag)
+        private string GetOfficeDrawioPartId(string tag)
         {
             if (!IsDrawioTag(tag))
                 return null;
             return tag.Split(':')[1];
         }
 
-        private string MakeDrawioTag(string id)
+        private string MakeOfficeDrawioTag(string partId)
         {
-            return $"OfficeDrawIo:{id}";
+            return $"OfficeDrawIo:{partId}";
         }
 
         private void Application_DocumentBeforeClose(Microsoft.Office.Interop.Word.Document doc, ref bool cancel)
         {
-            // Cleanup temp files
             foreach (var cc in ActiveVstoDocument.Controls)
             {
                 if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl)
                 {
-                    var partId = GetDrawioTagId(ctrl.Tag);
+                    // Cleanup temp files
+                    //
+                    var partId = GetOfficeDrawioPartId(ctrl.Tag);
                     if (partId == null)
                         continue;
                     try
@@ -376,7 +404,6 @@ namespace OfficeDrawIo
                     catch { }
                 }
             }
-            
         }
 
         private Microsoft.Office.Tools.Word.Document ActiveVstoDocument
@@ -405,7 +432,7 @@ namespace OfficeDrawIo
 
         private void PictureControl_Entering(object sender, Microsoft.Office.Tools.Word.ContentControlEnteringEventArgs e)
         {
-            SelectedCtrl = sender as Microsoft.Office.Tools.Word.PictureContentControl;
+            SelectedCtrl = sender as Microsoft.Office.Tools.Word.PictureContentControl;     
         }
 
         private void PictureControl_Deleting(object sender, Microsoft.Office.Tools.Word.ContentControlDeletingEventArgs e)
@@ -449,7 +476,7 @@ namespace OfficeDrawIo
                 if (nativeControl.Type == Microsoft.Office.Interop.Word.WdContentControlType.wdContentControlPicture
                     && IsDrawioTag(nativeControl.Tag))
                 {
-                    ids.Add(GetDrawioTagId(nativeControl.Tag));
+                    ids.Add(GetOfficeDrawioPartId(nativeControl.Tag));
                 }
             }
 
@@ -462,7 +489,66 @@ namespace OfficeDrawIo
                     part.Delete();
                 }
             }
+
+            /*
+            // Cleanup PictureControls images comment headers that may be quite bulky
+            foreach (var cc in ActiveVstoDocument.Controls)
+            {
+                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl)
+                {
+                    Trace.WriteLine($"Cleaning image comment header for PictureContentControl: {ctrl.Tag}");
+                    ImagePropertiesHelper.RemoveComment(ctrl.Image);
+                }
+            }
+
+            // Kick off task to call "artificial" handler when document has finished saving
+            Task.Run(() => {
+                // Execute on main UI thread
+                Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
+                {
+                    for (int k = 0; k < 50; k++)
+                    {
+                        try
+                        {
+                            if (Application.ActiveDocument.Saved)
+                            {
+                                DocumentAfterSave();
+                                break;
+                            }
+
+                            Thread.Sleep(100);
+                        }
+                        catch { break; }
+                    }
+                }, null);
+            });
+            */
         }
+
+        /*
+        private void DocumentAfterSave()
+        {
+            Trace.WriteLine("DocumentAfterSave()");
+
+            // Reload picture comment headers from document part data as they were explicitly removed before save to reduce document size.
+            // Even if not, they also get randomly removed on save from word itself when it decides that they are too big.
+            //
+            var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
+            foreach (var cc in ActiveVstoDocument.Controls)
+            {
+                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && IsDrawioTag(ctrl.Tag))
+                {
+                    var id = GetOfficeDrawioPartId(ctrl.Tag);
+                    var data = dataPartHelper.GetDrawIoDataPart(id);
+                    if (data != null)
+                    {
+                        Trace.WriteLine($"Reloading image comment header for PictureContentControl: {ctrl.Tag}");
+                        ImagePropertiesHelper.SetComment(ctrl.Image, data);
+                    }
+                }
+            }
+        }
+        */
 
         private bool ValidateDependencies()
         {
@@ -496,8 +582,6 @@ namespace OfficeDrawIo
                     Monitor.Exit(lck);
             }
         }
-
-        
 
         #region VSTO generated code
 

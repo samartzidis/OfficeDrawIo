@@ -16,10 +16,10 @@ namespace OfficeDrawIo
             if (img == null || img.PropertyItems.All(t => t.Id != CommentPropertyItemId))
                 return;
 
-            img.RemovePropertyItem(37510);
+            img.RemovePropertyItem(CommentPropertyItemId);
         }
 
-        public static void SetComment(Image img, string data)
+        public static void SetComment(Image img, byte[] bytes)
         {
             if (img == null)
                 return;
@@ -27,11 +27,11 @@ namespace OfficeDrawIo
             Image tmpImg;
             using (var stream = Helpers.GetResourceStream("Resources.new.png"))
                 tmpImg = Image.FromStream(stream);
-            var propItem = tmpImg.GetPropertyItem(37510);
+            var propItem = tmpImg.GetPropertyItem(CommentPropertyItemId);
 
-            var bytes = Encoding.UTF8.GetBytes(data);
+            //var bytes = Encoding.UTF8.GetBytes(data);
             var base64 = Convert.ToBase64String(bytes);
-            var asciiBytes = Encoding.ASCII.GetBytes(base64);
+            var asciiBytes = Encoding.ASCII.GetBytes(base64 + char.MinValue);
 
             propItem.Value = asciiBytes;
             propItem.Len = bytes.Length;
@@ -39,7 +39,7 @@ namespace OfficeDrawIo
             img.SetPropertyItem(propItem);
         }
 
-        public static string GetComment(Image img)
+        public static byte[] GetComment(Image img)
         {
             if (img == null || img.PropertyItems.All(t => t.Id != CommentPropertyItemId))
                 return null;
@@ -50,9 +50,9 @@ namespace OfficeDrawIo
             var base64 = Encoding.ASCII.GetString(value, 0, value.Length - 1);
             var bytes = Convert.FromBase64String(base64);
 
-            var data = Encoding.UTF8.GetString(bytes);
+            //var data = Encoding.UTF8.GetString(bytes);
 
-            return data;
+            return bytes;
         }
     }
 }
