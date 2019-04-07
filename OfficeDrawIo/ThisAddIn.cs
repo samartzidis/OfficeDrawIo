@@ -62,7 +62,10 @@ namespace OfficeDrawIo
 
         private void Application_WindowBeforeDoubleClick(Microsoft.Office.Interop.Word.Selection sel, ref bool cancel)
         {
-            
+            if (SelectedCtrl != null && SelectedCtrl.Range.InRange(sel.Range))
+            {
+                EditDrawIoDiagramOnDocument();
+            }
         }
 
         private void Application_DocumentChange()
@@ -221,7 +224,7 @@ namespace OfficeDrawIo
             if (id == null)
                 return;
 
-            var wnd = NativeWindowHelper.FindWindow($"{id}.drawio - draw.io");
+            var wnd = NativeWindowHelper.FindWindow($"{id}.png - draw.io");
             if (wnd != IntPtr.Zero)
             {
                 NativeWindowHelper.RestoreFromMinimized(wnd);
