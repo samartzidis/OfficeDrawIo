@@ -3,8 +3,6 @@
 
 Allows embedding and editing Draw.io images in Microsoft Office documents.
 
-The Add-In is implemented as an Office VSTO Add-In in mainly C# and a hint of JavaScript.
-
 Known issues
 ------------
 - Only Word is currently supported due to VSTO custom control restrictions.
