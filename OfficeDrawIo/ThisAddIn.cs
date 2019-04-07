@@ -56,8 +56,6 @@ namespace OfficeDrawIo
             Application.DocumentBeforeClose += Application_DocumentBeforeClose;
             Application.DocumentChange += Application_DocumentChange;
             Application.WindowBeforeDoubleClick += Application_WindowBeforeDoubleClick;
-
-            CreateFileWatcher(_userTmpFilesDir);  
         }
 
         private void Application_WindowBeforeDoubleClick(Microsoft.Office.Interop.Word.Selection sel, ref bool cancel)
@@ -242,7 +240,11 @@ namespace OfficeDrawIo
 
             try
             {
+                EnsureStopFileWatcher();
+
                 File.WriteAllBytes(drawioFilePath, data);
+
+                EnsureStartFileWatcher();
 
                 var process = new Process();
                 process.StartInfo.FileName = _settings.DrawIoExePath;
@@ -297,9 +299,9 @@ namespace OfficeDrawIo
                 _settings.Save();
         }
 
-        public void AddInNotifyChanged(string id)
+        public void FileNotifyChanged(string id)
         {
-            Trace.WriteLine($"AddInNotifyChanged(partId = {id})");
+            Trace.WriteLine($"FileNotifyChanged(partId = {id})");
 
             try
             {
@@ -367,7 +369,7 @@ namespace OfficeDrawIo
 
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
-            _watcher?.Dispose();
+            EnsureStopFileWatcher();
         }
 
         private bool IsDrawioTag(string tag)
@@ -443,22 +445,28 @@ namespace OfficeDrawIo
 
         }
 
-        private FileSystemWatcher CreateFileWatcher(string path)
+        private void EnsureStartFileWatcher()
         {
             if (_watcher != null)
-                return _watcher;
+                return;
 
-            _watcher = new FileSystemWatcher(path);
+            _watcher = new FileSystemWatcher(_userTmpFilesDir);
             _watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
             _watcher.Filter = "*.png";
             _watcher.IncludeSubdirectories = false;
-            _watcher.Changed += OnFileChanged;
-            //watcher.Created += OnFileChanged;
-            //watcher.Deleted += OnFileChanged;
-            _watcher.EnableRaisingEvents = true;
 
-            return _watcher;
-        }        
+            _watcher.Changed += OnFileChanged;
+            //_watcher.Created += OnFileChanged;
+            //watcher.Deleted += OnFileChanged
+
+            _watcher.EnableRaisingEvents = true;
+        }
+
+        private void EnsureStopFileWatcher()
+        {
+            _watcher?.Dispose();
+            _watcher = null;
+        }
 
         private static void OnFileChanged(object source, FileSystemEventArgs e)
         {
@@ -466,7 +474,7 @@ namespace OfficeDrawIo
 
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
-                _addin.AddInNotifyChanged(xmlPartId);
+                _addin.FileNotifyChanged(xmlPartId);
             }, null);
         }  
 
