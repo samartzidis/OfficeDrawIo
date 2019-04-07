@@ -111,7 +111,7 @@ namespace OfficeDrawIo
                 Microsoft.Office.Core.CustomXMLPart part;
                 Microsoft.Office.Tools.Word.PictureContentControl ctrl;
                               
-                var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+                var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
                 var incomingId = GetDrawioTagId(addedControl.Tag);
                 var data = dataPartHelper.GetDrawIoDataPart(incomingId); // Get PictureControl associated Draw.io image    
                 
@@ -137,6 +137,8 @@ namespace OfficeDrawIo
                     ctrl.LockContents = false;
                 }
 
+                
+
                 ctrl.Tag = MakeDrawioTag(part.Id);
                 ctrl.Title = $"Draw.io diagram {part.Id}";
 
@@ -155,26 +157,34 @@ namespace OfficeDrawIo
             if (!ValidateDependencies())
                 return;
 
-            var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+            try
+            {
+                var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
 
-            var data = Helpers.LoadBinaryResource("Resources.new.png");
-            Image img;
-            using (var stream = new MemoryStream(data, false))
-                img = Image.FromStream(stream);
-            var part = dataPartHelper.AddDrawIoDataPart(data);
-            var id = part.Id;
+                var data = Helpers.LoadBinaryResource("Resources.new.png");
+                Image img;
+                using (var stream = new MemoryStream(data, false))
+                    img = Image.FromStream(stream);
+                var part = dataPartHelper.AddDrawIoDataPart(data);
+                var id = part.Id;
 
-            var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(id);
-            ctrl.Title = $"Draw.io diagram {id}";
-            ctrl.Tag = MakeDrawioTag(id);
-            ctrl.Image = img;
-            ctrl.LockContents = true;
+                var ctrl = ActiveVstoDocument.Controls.AddPictureContentControl(id);
+                ctrl.Title = $"Draw.io diagram {id}";
+                ctrl.Tag = MakeDrawioTag(id);
+                ctrl.Image = img;
+                ctrl.LockContents = true;
 
-            ctrl.Entering += PictureControl_Entering;
-            ctrl.Exiting += PictureControl_Exiting;
-            ctrl.Deleting += PictureControl_Deleting;
+                ctrl.Entering += PictureControl_Entering;
+                ctrl.Exiting += PictureControl_Exiting;
+                ctrl.Deleting += PictureControl_Deleting;
 
-            SelectedCtrl = ctrl;
+                SelectedCtrl = ctrl;
+            }
+            catch (Exception m)
+            {
+                var msg = $"Failed to add Draw.io diagram. Error: {m.ToString()}.";
+                MessageBox.Show(msg, Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         public void EditDrawIoDiagramOnDocument()
@@ -200,7 +210,7 @@ namespace OfficeDrawIo
                 return;
             }
 
-            var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+            var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
 
             var drawioFilePath = Path.Combine(_userTmpFilesDir, $"{id}.png");
             var data = dataPartHelper.GetDrawIoDataPart(id);
@@ -220,7 +230,7 @@ namespace OfficeDrawIo
             }
             catch (Exception m)
             {
-                var msg = $"Failed to start Draw.io Desktop application for file {drawioFilePath}. Error: {m.Message}.";
+                var msg = $"Failed to start Draw.io Desktop application for file {drawioFilePath}. Error: {m.ToString()}.";
                 MessageBox.Show(msg, Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
@@ -244,7 +254,7 @@ namespace OfficeDrawIo
             {
                 try
                 {
-                    var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+                    var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
                     var data = dataPartHelper.GetDrawIoDataPart(GetDrawioTagId(SelectedCtrl.Tag));
 
                     File.WriteAllBytes(dlg.FileName, data);
@@ -270,7 +280,7 @@ namespace OfficeDrawIo
 
             try
             {
-                var dataPartHelper = new DrawIoDataPartHelper(Application.ActiveDocument);
+                var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
                 if (!dataPartHelper.ExistsDrawIoDataPart(id))
                     return;
 
@@ -436,14 +446,6 @@ namespace OfficeDrawIo
 
         private void Application_DocumentBeforeSave(Microsoft.Office.Interop.Word.Document doc, ref bool saveAsUi, ref bool cancel)
         {
-            //foreach (var ctrl in ActiveVstoDocument.Controls)
-            //{
-            //    if (ctrl is Microsoft.Office.Tools.Word.PictureContentControl pcc)
-            //    {
-            //        RemoveCommentHeader(pcc.Image);
-            //    }
-            //}
-
             // Get list of all Draw.io PictureContentControls in document
             var ids = new HashSet<string>();
             foreach (Microsoft.Office.Interop.Word.ContentControl nativeControl in doc.ContentControls)
@@ -457,8 +459,8 @@ namespace OfficeDrawIo
 
             // Clean up unreferenced OfficeDrawIo data parts
             foreach (Microsoft.Office.Core.CustomXMLPart part in Application.ActiveDocument.CustomXMLParts)
-            {
-                if (!ids.Contains(part.Id) && part.XML != null && part.XML.TrimStart().StartsWith("<OfficeDrawIo"))
+            {                
+                if (!ids.Contains(part.Id) && OfficeDrawIoPartHelper.IsOfficeDrawIoPart(part))
                 {
                     Trace.WriteLine($"Deleting orphaned Draw.io data part id: {part.Id}");
                     part.Delete();

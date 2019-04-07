@@ -187,7 +187,7 @@
     <Compile Include="AboutBox.Designer.cs">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </Compile>
-    <Compile Include="DataPartHelper.cs" />
+    <Compile Include="OfficeDrawIoPartHelper.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="ImagePropertiesHelper.cs" />
     <Compile Include="Ribbon.cs">
@@ -267,6 +267,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="icon.ico" />
+    <EmbeddedResource Include="Resources\OfficeDrawIoPartTemplate.xml" />
     <EmbeddedResource Include="Resources\new.png" />
     <None Include="Resources\Edit_grey_16xMD.png" />
     <None Include="Resources\InformationSymbol_16x.png" />
