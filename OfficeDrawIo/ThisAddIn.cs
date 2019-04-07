@@ -23,7 +23,7 @@ namespace OfficeDrawIo
     public partial class ThisAddIn
     {
         public SynchronizationContext TheWindowsFormsSynchronizationContext { get; private set; }
-        public Microsoft.Office.Tools.Word.PictureContentControl SelectedCtrl { get; private set; }
+        public Microsoft.Office.Tools.Word.PictureContentControl SelectedCtrl { get { return GetCurrentSelection().FirstOrDefault(); } }
 
         private static ThisAddIn _addin;    
         private string _userTmpFilesDir;
@@ -99,8 +99,6 @@ namespace OfficeDrawIo
 
                     ctrl.LockContents = true;
 
-                    ctrl.Entering += PictureControl_Entering;
-                    ctrl.Exiting += PictureControl_Exiting;
                     ctrl.Deleting += PictureControl_Deleting;
                 }
             }
@@ -160,12 +158,10 @@ namespace OfficeDrawIo
 
                 ctrl.Title = $"Draw.io diagram {part.Id}";
 
-                ctrl.Entering += PictureControl_Entering;
-                ctrl.Exiting += PictureControl_Exiting;
                 ctrl.Deleting += PictureControl_Deleting;
 
                 ctrl.LockContents = true;
-                SelectedCtrl = ctrl;
+                //SelectedCtrl = ctrl;
             }
         }
 
@@ -195,11 +191,9 @@ namespace OfficeDrawIo
                 ctrl.Image = img;
                 ctrl.LockContents = true;
 
-                ctrl.Entering += PictureControl_Entering;
-                ctrl.Exiting += PictureControl_Exiting;
                 ctrl.Deleting += PictureControl_Deleting;
 
-                SelectedCtrl = ctrl;
+                //SelectedCtrl = ctrl;
             }
             catch (Exception m)
             {
@@ -261,28 +255,40 @@ namespace OfficeDrawIo
 
         }
 
+        public IEnumerable<Microsoft.Office.Tools.Word.PictureContentControl> GetCurrentSelection()
+        {
+            foreach (var cc in ActiveVstoDocument.Controls)
+            {
+                if (cc is Microsoft.Office.Tools.Word.PictureContentControl ctrl && IsDrawioTag(ctrl.Tag))
+                {
+                    if(ctrl.Range.InRange(Application.Selection.Range))
+                        yield return ctrl;
+                }
+            }
+        }
+
         public void ExportDrawIoDiagram()
         {
             Trace.WriteLine("ExportDrawIoDiagram()");
 
-            if (SelectedCtrl == null)
-                return;
+            var sels = GetCurrentSelection().ToList();
+            if (sels.Count == 0)
+                return; // Nothing selected
 
-            if (!ValidateDependencies())
-                return;
-
-            var dlg = new SaveFileDialog();
-            dlg.Filter = "Draw.io files (*.png)|*.png|All files (*.*)|*.*";
-            dlg.DefaultExt = ".png";
-
+            var dlg = new FolderBrowserDialog();
             if (dlg.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
                     var dataPartHelper = new OfficeDrawIoPartHelper(Application.ActiveDocument);
-                    var data = dataPartHelper.GetDrawIoDataPart(GetOfficeDrawioPartId(SelectedCtrl.Tag));
 
-                    File.WriteAllBytes(dlg.FileName, data);
+                    foreach (var sel in sels)
+                    {
+                        var data = dataPartHelper.GetDrawIoDataPart(GetOfficeDrawioPartId(sel.Tag));                        
+                        var filePath = Path.Combine(dlg.SelectedPath, $"{GetOfficeDrawioPartId(sel.Tag)}.png");
+
+                        File.WriteAllBytes(filePath, data);
+                    }
                 }
                 catch (Exception m)
                 {
@@ -290,7 +296,6 @@ namespace OfficeDrawIo
                         Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-            
         }
 
         public void Settings()
@@ -428,17 +433,6 @@ namespace OfficeDrawIo
                 return null;
             }
         }        
-
-
-        private void PictureControl_Exiting(object sender, Microsoft.Office.Tools.Word.ContentControlExitingEventArgs e)
-        {
-            SelectedCtrl = null;
-        }
-
-        private void PictureControl_Entering(object sender, Microsoft.Office.Tools.Word.ContentControlEnteringEventArgs e)
-        {
-            SelectedCtrl = sender as Microsoft.Office.Tools.Word.PictureContentControl;     
-        }
 
         private void PictureControl_Deleting(object sender, Microsoft.Office.Tools.Word.ContentControlDeletingEventArgs e)
         {

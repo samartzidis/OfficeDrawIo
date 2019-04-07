@@ -36,10 +36,10 @@
         {
             this.tab1 = this.Factory.CreateRibbonTab();
             this.group1 = this.Factory.CreateRibbonGroup();
-            this.separator1 = this.Factory.CreateRibbonSeparator();
             this.btnAddDiagram = this.Factory.CreateRibbonButton();
             this.btnEditDiagram = this.Factory.CreateRibbonButton();
             this.btnExport = this.Factory.CreateRibbonButton();
+            this.separator1 = this.Factory.CreateRibbonSeparator();
             this.btnSettings = this.Factory.CreateRibbonButton();
             this.btnAbout = this.Factory.CreateRibbonButton();
             this.tab1.SuspendLayout();
@@ -64,15 +64,12 @@
             this.group1.Label = "Draw.io Diagram";
             this.group1.Name = "group1";
             // 
-            // separator1
-            // 
-            this.separator1.Name = "separator1";
-            // 
             // btnAddDiagram
             // 
             this.btnAddDiagram.Image = global::OfficeDrawIo.Properties.Resources.AddControl_16x;
             this.btnAddDiagram.Label = "Add";
             this.btnAddDiagram.Name = "btnAddDiagram";
+            this.btnAddDiagram.ScreenTip = "Add new Draw.io diagram at cursor position.";
             this.btnAddDiagram.ShowImage = true;
             this.btnAddDiagram.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnAddDiagram_Click);
             // 
@@ -81,6 +78,7 @@
             this.btnEditDiagram.Image = global::OfficeDrawIo.Properties.Resources.Edit_grey_16xMD;
             this.btnEditDiagram.Label = "View/Edit";
             this.btnEditDiagram.Name = "btnEditDiagram";
+            this.btnEditDiagram.ScreenTip = "View/Edit the selected Draw.io diagram.";
             this.btnEditDiagram.ShowImage = true;
             this.btnEditDiagram.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnEditDiagram_Click);
             // 
@@ -89,14 +87,20 @@
             this.btnExport.Image = global::OfficeDrawIo.Properties.Resources.ExportFile_16x;
             this.btnExport.Label = "Export...";
             this.btnExport.Name = "btnExport";
+            this.btnExport.ScreenTip = "Export a single or the selected range of Draw.io diagrams as files.";
             this.btnExport.ShowImage = true;
             this.btnExport.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnExport_Click);
+            // 
+            // separator1
+            // 
+            this.separator1.Name = "separator1";
             // 
             // btnSettings
             // 
             this.btnSettings.Image = global::OfficeDrawIo.Properties.Resources.Settings_16x;
             this.btnSettings.Label = "Settings...";
             this.btnSettings.Name = "btnSettings";
+            this.btnSettings.ScreenTip = "Open the Draw.io add-in settings.";
             this.btnSettings.ShowImage = true;
             this.btnSettings.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnSettings_Click);
             // 
