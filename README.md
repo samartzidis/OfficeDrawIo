@@ -1,7 +1,6 @@
 # OfficeDrawIo
-**[Draw.io](https://about.draw.io/) Add-In for Microsoft Office.**
 
-Allows embedding and editing Draw.io images in Microsoft Office documents.
+Allows embedding and inline editing of Draw.io images in Microsoft Office Word documents.
 
 Known issues
 ------------
