@@ -1,6 +1,6 @@
 # OfficeDrawIo
 
-OfficeDrawIo is a Microsoft Office add-in that allows embedding and inline editing of [Draw.io](https://about.draw.io/) diagrams into Word documents. Users without the add-in will still be able to see the diagrams but not edit them.
+OfficeDrawIo is a Microsoft Office add-in that allows embedding and inline editing of [Draw.io](https://about.draw.io/) diagrams into Word documents. Users without the add-in will still be able to see the diagrams but just not edit them.
 
 Known issues
 ------------
