@@ -1,11 +1,11 @@
 # OfficeDrawIo
 
-Allows embedding and inline editing of Draw.io images in Microsoft Office Word documents.
+OfficeDrawIo is a Microsoft Office add-in that allows embedding and inline editing of Draw.io diagrams into Word documents. Users without the add-in will still be able to see the diagrams but not edit them.
 
 Known issues
 ------------
 - Only Word is currently supported due to VSTO custom control restrictions.
-- Copy-paste (effectively cloning) of complete Word Draw.io diagram controls does not work inbetween different Word documents, only within the same document. Workaround is to create a new diagram in the target document and then copy the diagram contents from the first document to it.
+- Copy-paste (effectively cloning) of complete Word Draw.io diagram controls does not work across different Word documents, only within the same document. Workaround is to create a new diagram in the target document and then copy the diagram contents from the first document to it.
 
 Runtime Requirements
 --------------------
