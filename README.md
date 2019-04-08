@@ -11,7 +11,7 @@ Runtime Requirements
 --------------------
 - Windows 10 ([.NET Framework](https://dotnet.microsoft.com/download/dotnet-framework) 4.6 or better).
 - Office 2017 (may work in earlier versions but not tested).
-- Drawio [Desktop](https://about.draw.io/integrations/).
+- Draw.io [Desktop](https://about.draw.io/integrations/).
 
 Screenshots
 -----------
