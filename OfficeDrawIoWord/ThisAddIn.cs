@@ -278,7 +278,7 @@ namespace OfficeDrawIoWord
                 var index = 1;
                 foreach (var shape in sels)
                 {
-                    var filePath = Path.Combine(dlg.SelectedPath, $"{index++}.png");
+                    var filePath = Path.Combine(dlg.SelectedPath, $"{index++}.drawio.png");
                     var pngBytes = Util.DecodePngFile(shape.Title);
                     File.WriteAllBytes(filePath, pngBytes);
                 }
