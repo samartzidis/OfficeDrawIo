@@ -3,6 +3,8 @@
 OfficeDrawIo is a Microsoft Office add-in that allows embedding and inline editing of [Draw.io](https://about.draw.io/) diagrams into Word documents. Users without the add-in will still be able to see the diagrams but just not edit them.
 Supports both 32 and 64 bit versions of Office by using the respective msi installation package.
 
+**Note:** Current version 2 is NOT backwards compatible with version 1. If you have any documents using version 1.* of OfficeDrawIo, please extract the document images first (as DrawIo png files) using the *Export* add-in option before upgrading.
+
 Runtime Requirements
 --------------------
 - Windows 10 ([.NET Framework](https://dotnet.microsoft.com/download/dotnet-framework) 4.6 or better).
