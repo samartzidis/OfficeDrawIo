@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OfficeDrawIo
 {
-    internal static class NativeWindowHelper
+    public static class NativeWindowHelper
     {
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int cmdShow);

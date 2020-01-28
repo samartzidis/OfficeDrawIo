@@ -6,18 +6,28 @@
     <ProductVersion>3.10</ProductVersion>
     <ProjectGuid>e7ee3fe6-3ca4-48e6-bccd-01b904717f92</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>OfficeDrawIoSetup</OutputName>
+    <OutputName>OfficeDrawIo_$(Platform)</OutputName>
     <OutputType>Package</OutputType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <DefineConstants>Debug;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <DefineConstants>OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <DefineConstants>Debug;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <DefineConstants>OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Product.wxs" />
@@ -52,5 +62,4 @@
 	<Target Name="AfterBuild">
 	</Target>
 	-->
- 
 </Project>

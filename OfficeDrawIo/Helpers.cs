@@ -5,13 +5,12 @@ using System.Reflection;
 
 namespace OfficeDrawIo
 {
-    static class Helpers
+    public static class Helpers
     {
-        public static string LoadStringResource(string name)
+        public static string LoadStringResource(Assembly asm, string name)
         {
-            var execAsm = Assembly.GetExecutingAssembly();
-            var resourceName = execAsm.GetName().Name + "." + name;
-            using (var s = execAsm.GetManifestResourceStream(resourceName))
+            var resourceName = asm.GetName().Name + "." + name;
+            using (var s = asm.GetManifestResourceStream(resourceName))
             {
                 if (s == null)
                     throw new Exception("Could not load resource: " + resourceName);
@@ -20,11 +19,10 @@ namespace OfficeDrawIo
             }
         }
 
-        public static byte[] LoadBinaryResource(string name)
+        public static byte[] LoadBinaryResource(Assembly asm, string name)
         {
-            var execAsm = Assembly.GetExecutingAssembly();
-            var resourceName = execAsm.GetName().Name + "." + name;
-            using (var s = execAsm.GetManifestResourceStream(resourceName))
+            var resourceName = asm.GetName().Name + "." + name;
+            using (var s = asm.GetManifestResourceStream(resourceName))
             {
                 if (s == null)
                     throw new Exception("Could not load resource: " + resourceName);
@@ -33,11 +31,10 @@ namespace OfficeDrawIo
             }
         }
 
-        public static Stream GetResourceStream(string name)
+        public static Stream GetResourceStream(Assembly asm, string name)
         {
-            var execAsm = Assembly.GetExecutingAssembly();
-            var resourceName = execAsm.GetName().Name + "." + name;
-            var s = execAsm.GetManifestResourceStream(resourceName);
+            var resourceName = asm.GetName().Name + "." + name;
+            var s = asm.GetManifestResourceStream(resourceName);
 
             if (s == null)
                 throw new Exception("Could not load resource: " + resourceName);
@@ -45,9 +42,8 @@ namespace OfficeDrawIo
             return s;
         }
 
-        public static string GetVersionString()
+        public static string GetVersionString(Assembly asm)
         {
-            var asm = Assembly.GetExecutingAssembly();
             var ver = asm.GetName().Version; 
             
             var res = $"{ver.Major}.{ver.Minor}.{ver.Build}";
@@ -55,32 +51,6 @@ namespace OfficeDrawIo
                 res += $".{ver.Revision}";
 
             return res;
-        }
-    }
-
-    public static class StreamExtensions
-    {
-        public static byte[] ReadAllBytes(this Stream stream)
-        {
-            using (MemoryStream ms = new MemoryStream((int)stream.Length))
-            {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
-                {
-                    ms.Write(buffer, 0, bytesRead);
-                }
-                return ms.ToArray();
-            }
-        }
-
-        public static void CopyTo(this Stream input, Stream output)
-        {
-            const int size = 4096;
-            byte[] bytes = new byte[4096];
-            int numBytes;
-            while ((numBytes = input.Read(bytes, 0, size)) > 0)
-                output.Write(bytes, 0, numBytes);
         }
     }
 }

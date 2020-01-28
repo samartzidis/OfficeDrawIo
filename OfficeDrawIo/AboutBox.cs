@@ -6,10 +6,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using OfficeDrawIoUtil;
 
 namespace OfficeDrawIo
 {
-    partial class AboutBox : Form
+    public partial class AboutBox : Form
     {
         public AboutBox()
         {
@@ -17,7 +18,7 @@ namespace OfficeDrawIo
 
             Text = $"Office Draw.io";
 
-            label1.Text = $"Draw.io Add-In for Microsoft Office v.{Helpers.GetVersionString()}.\r\n(c)2019 George Samartzidis.";
+            label1.Text = $"Draw.io Add-In for Microsoft Office v.{Helpers.GetVersionString(Assembly.GetExecutingAssembly())}.\r\n(c)2020 George Samartzidis.";
         }
 
         #region Assembly Attribute Accessors

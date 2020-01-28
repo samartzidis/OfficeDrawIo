@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OfficeDrawIo
 {
-    internal class TraceListener : DefaultTraceListener
+    public class TraceListener : DefaultTraceListener
     {
         public override void Write(string message)
         {

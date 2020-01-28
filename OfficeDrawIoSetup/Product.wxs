@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
- 
+
+  <?if $(var.Platform) = x64 ?>
+    <?define ProductNamePostfix = "(64 bit)" ?>
+    <?define Win64 = "yes" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+    <?define ProductLineUpgradeCode = "DAA7FB94-CECB-404E-B3E5-5BE819D08D6D" ?>
+  <?else ?>
+    <?define ProductNamePostfix = "(32 bit)" ?>
+    <?define Win64 = "no" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+    <?define ProductLineUpgradeCode = "36364443-522F-4CA1-B453-77AB3A533B68" ?>
+  <?endif ?>
+
   <Product Id="*" 
-           Name="Office Draw.io !(bind.FileVersion.OfficeDrawIo_dll)" 
+           Name="Office Draw.io !(bind.FileVersion.OfficeDrawIo_dll) $(var.ProductNamePostfix)" 
            Language="1033"
            Version="!(bind.FileVersion.OfficeDrawIo_dll)"
            Manufacturer="George Samartzidis" 
-           UpgradeCode="5db2e48f-7431-4db0-be29-29a1649aa678">
+           UpgradeCode="$(var.ProductLineUpgradeCode)">
 
-    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"  InstallPrivileges="elevated" AdminImage="yes" />
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"  InstallPrivileges="elevated" />
 
-		<!--<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />-->
-    <Upgrade Id="5db2e48f-7431-4db0-be29-29a1649aa678">
-      <UpgradeVersion OnlyDetect="no" Property="PREVIOUSFOUND"
-                      Minimum="1.0.0.0"  IncludeMinimum="yes"
-                      Maximum="99.0.0.0" IncludeMaximum="no" />
-    </Upgrade>
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
     <MediaTemplate EmbedCab="yes" />
 
@@ -31,48 +38,43 @@
 
     <PropertyRef Id="NETFRAMEWORK45" />
     <Condition Message="[ProductName] Requires .NET Framework 4.6 or later to be installed">
-      <![CDATA[Installed OR (NETFRAMEWORK45 AND NETFRAMEWORK45 >= "#393295")]]> <!-- 4.6=393295 4.7.2=461808-->
+      <![CDATA[Installed OR (NETFRAMEWORK45 AND NETFRAMEWORK45 >= "#461808")]]> <!-- 4.6=393295 4.7.2=461808-->
     </Condition>
 
     <UIRef Id="WixUI_Minimal" />    
- 
-    <InstallExecuteSequence>
-      <RemoveExistingProducts After="InstallInitialize" />
-    </InstallExecuteSequence>
- 
-	</Product>
+  </Product>
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder">
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
         <Directory Id="INSTALLFOLDER" Name="OfficeDrawIo" />
 
         <Component Id="Registry_FriendlyName">
           <RegistryValue Id="RegKey_FriendlyName" Root="HKLM"
-                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
                          Name="FriendlyName"
-                         Value="OfficeDrawIo Add-In"
+                         Value="OfficeDrawIoWord Add-In"
                          Type="string" KeyPath="yes" />
         </Component>
 
         <Component Id="Registry_Description">
           <RegistryValue Id="RegKey_Description" Root="HKLM"
-                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
                          Name="Description"
-                         Value="OfficeDrawIo Add-In"
+                         Value="OfficeDrawIoWord Add-In"
                          Type="string" KeyPath="yes" />
         </Component>
 
         <Component Id="Registry_Manifest">
           <RegistryValue Id="RegKey_Manifest" Root="HKLM"
-                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
-                         Name="Manifest" Value="[INSTALLFOLDER]OfficeDrawIo.vsto|vstolocal"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
+                         Name="Manifest" Value="[INSTALLFOLDER]OfficeDrawIoWord.vsto|vstolocal"
                          Type="string" KeyPath="yes" />
         </Component>
 
         <Component Id="Registry_LoadBehavior">
           <RegistryValue Id="RegKey_LoadBehavior" Root="HKLM"
-                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIo"
+                         Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
                          Name="LoadBehavior" Value="3"
                          Type="integer" KeyPath="yes" />
         </Component>
@@ -83,13 +85,14 @@
 
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Component Id="OfficeDrawIo" Guid="{73A8EBD0-DD7D-42E9-A94B-3983F2D8C524}">
+      <Component Id="OfficeDrawIoWord" Guid="{73A8EBD0-DD7D-42E9-A94B-3983F2D8C524}">
 
-        <File Id="OfficeDrawIo_vsto" Name="OfficeDrawIo.vsto" Source="$(var.OfficeDrawIoBin)"></File>
-        <File Id="OfficeDrawIo_dll_manifest" Name="OfficeDrawIo.dll.manifest" Source="$(var.OfficeDrawIoBin)"></File>
         <File Id="OfficeDrawIo_dll" Name="OfficeDrawIo.dll" Source="$(var.OfficeDrawIoBin)" />
-        <File Id="MSOfficeToolsCommon_dll" Name="Microsoft.Office.Tools.Common.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
-        <File Id="MSOfficeToolsWord_dll" Name="Microsoft.Office.Tools.Word.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoBin)"></File>
+        <File Id="OfficeDrawIoWord_vsto" Name="OfficeDrawIoWord.vsto" Source="$(var.OfficeDrawIoWordBin)"></File>
+        <File Id="OfficeDrawIoWord_dll_manifest" Name="OfficeDrawIoWord.dll.manifest" Source="$(var.OfficeDrawIoWordBin)"></File>
+        <File Id="OfficeDrawIoWord_dll" Name="OfficeDrawIoWord.dll" Source="$(var.OfficeDrawIoWordBin)" />
+        <File Id="MSOfficeToolsCommon_dll" Name="Microsoft.Office.Tools.Common.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoWordBin)"></File>
+        <File Id="MSOfficeToolsWord_dll" Name="Microsoft.Office.Tools.Word.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoWordBin)"></File>
 
       </Component>
     </ComponentGroup>

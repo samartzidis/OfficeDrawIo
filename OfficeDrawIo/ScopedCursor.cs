@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace OfficeDrawIo
+namespace OfficeDrawIoUtil
 {
     public class ScopedCursor : IDisposable
     {

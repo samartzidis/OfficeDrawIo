@@ -1,4 +1,4 @@
-﻿namespace OfficeDrawIo
+﻿namespace OfficeDrawIoWord
 {
     partial class Ribbon : Microsoft.Office.Tools.Ribbon.RibbonBase
     {
@@ -66,7 +66,7 @@
             // 
             // btnAddDiagram
             // 
-            this.btnAddDiagram.Image = global::OfficeDrawIo.Properties.Resources.AddControl_16x;
+            this.btnAddDiagram.Image = global::OfficeDrawIoWord.Properties.Resources.AddControl_16x;
             this.btnAddDiagram.Label = "Add";
             this.btnAddDiagram.Name = "btnAddDiagram";
             this.btnAddDiagram.ScreenTip = "Add new Draw.io diagram at cursor position.";
@@ -75,7 +75,7 @@
             // 
             // btnEditDiagram
             // 
-            this.btnEditDiagram.Image = global::OfficeDrawIo.Properties.Resources.Edit_grey_16xMD;
+            this.btnEditDiagram.Image = global::OfficeDrawIoWord.Properties.Resources.Edit_grey_16xMD;
             this.btnEditDiagram.Label = "View/Edit";
             this.btnEditDiagram.Name = "btnEditDiagram";
             this.btnEditDiagram.ScreenTip = "View/Edit the selected Draw.io diagram.";
@@ -84,7 +84,7 @@
             // 
             // btnExport
             // 
-            this.btnExport.Image = global::OfficeDrawIo.Properties.Resources.ExportFile_16x;
+            this.btnExport.Image = global::OfficeDrawIoWord.Properties.Resources.ExportFile_16x;
             this.btnExport.Label = "Export...";
             this.btnExport.Name = "btnExport";
             this.btnExport.ScreenTip = "Export a single or the selected range of Draw.io diagrams as files.";
@@ -97,7 +97,7 @@
             // 
             // btnSettings
             // 
-            this.btnSettings.Image = global::OfficeDrawIo.Properties.Resources.Settings_16x;
+            this.btnSettings.Image = global::OfficeDrawIoWord.Properties.Resources.Settings_16x;
             this.btnSettings.Label = "Settings...";
             this.btnSettings.Name = "btnSettings";
             this.btnSettings.ScreenTip = "Open the Draw.io add-in settings.";
@@ -106,7 +106,7 @@
             // 
             // btnAbout
             // 
-            this.btnAbout.Image = global::OfficeDrawIo.Properties.Resources.InformationSymbol_16x;
+            this.btnAbout.Image = global::OfficeDrawIoWord.Properties.Resources.InformationSymbol_16x;
             this.btnAbout.Label = "About...";
             this.btnAbout.Name = "btnAbout";
             this.btnAbout.ShowImage = true;
