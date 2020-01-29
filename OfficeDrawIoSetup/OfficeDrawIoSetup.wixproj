@@ -12,20 +12,20 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <DefineConstants>Debug;OfficeDrawIoPptBin=..\OfficeDrawIoPpt\bin\$(Configuration)\;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <DefineConstants>OfficeDrawIoPptBin=..\OfficeDrawIoPpt\bin\$(Configuration)\;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
-    <DefineConstants>Debug;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <DefineConstants>Debug;OfficeDrawIoPptBin=..\OfficeDrawIoPpt\bin\$(Configuration)\;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <DefineConstants>OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
+    <DefineConstants>OfficeDrawIoPptBin=..\OfficeDrawIoPpt\bin\$(Configuration)\;OfficeDrawIoBin=..\OfficeDrawIo\bin\$(Configuration)\;OfficeDrawIoWordBin=..\OfficeDrawIoWord\bin\$(Configuration)\;SetupHelperBin=..\SetupHelper\bin\$(Configuration)\;</DefineConstants>
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>

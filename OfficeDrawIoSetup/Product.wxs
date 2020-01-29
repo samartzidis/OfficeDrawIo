@@ -30,10 +30,14 @@
 
 		<Feature Id="ProductFeature" Title="OfficeDrawIoSetup" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
-      <ComponentRef Id="Registry_FriendlyName" />
-      <ComponentRef Id="Registry_Description" />
-      <ComponentRef Id="Registry_Manifest" />
-      <ComponentRef Id="Registry_LoadBehavior" />
+      <ComponentRef Id="OfficeDrawIoWord_Registry_FriendlyName" />
+      <ComponentRef Id="OfficeDrawIoWord_Registry_Description" />
+      <ComponentRef Id="OfficeDrawIoWord_Registry_Manifest" />
+      <ComponentRef Id="OfficeDrawIoWord_Registry_LoadBehavior" />
+      <ComponentRef Id="OfficeDrawIoPpt_Registry_FriendlyName" />
+      <ComponentRef Id="OfficeDrawIoPpt_Registry_Description" />
+      <ComponentRef Id="OfficeDrawIoPpt_Registry_Manifest" />
+      <ComponentRef Id="OfficeDrawIoPpt_Registry_LoadBehavior" />
 		</Feature>
 
     <PropertyRef Id="NETFRAMEWORK45" />
@@ -49,32 +53,56 @@
       <Directory Id="$(var.PlatformProgramFilesFolder)">
         <Directory Id="INSTALLFOLDER" Name="OfficeDrawIo" />
 
-        <Component Id="Registry_FriendlyName">
-          <RegistryValue Id="RegKey_FriendlyName" Root="HKLM"
+        <Component Id="OfficeDrawIoWord_Registry_FriendlyName">
+          <RegistryValue Id="OfficeDrawIoWord_RegKey_FriendlyName" Root="HKLM"
                          Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
                          Name="FriendlyName"
                          Value="OfficeDrawIoWord Add-In"
                          Type="string" KeyPath="yes" />
         </Component>
-
-        <Component Id="Registry_Description">
-          <RegistryValue Id="RegKey_Description" Root="HKLM"
+        <Component Id="OfficeDrawIoWord_Registry_Description">
+          <RegistryValue Id="OfficeDrawIoWord_RegKey_Description" Root="HKLM"
                          Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
                          Name="Description"
                          Value="OfficeDrawIoWord Add-In"
                          Type="string" KeyPath="yes" />
         </Component>
-
-        <Component Id="Registry_Manifest">
-          <RegistryValue Id="RegKey_Manifest" Root="HKLM"
+        <Component Id="OfficeDrawIoWord_Registry_Manifest">
+          <RegistryValue Id="OfficeDrawIoWord_RegKey_Manifest" Root="HKLM"
                          Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
                          Name="Manifest" Value="[INSTALLFOLDER]OfficeDrawIoWord.vsto|vstolocal"
                          Type="string" KeyPath="yes" />
         </Component>
-
-        <Component Id="Registry_LoadBehavior">
-          <RegistryValue Id="RegKey_LoadBehavior" Root="HKLM"
+        <Component Id="OfficeDrawIoWord_Registry_LoadBehavior">
+          <RegistryValue Id="OfficeDrawIoWord_RegKey_LoadBehavior" Root="HKLM"
                          Key="Software\Microsoft\Office\Word\AddIns\OfficeDrawIoWord"
+                         Name="LoadBehavior" Value="3"
+                         Type="integer" KeyPath="yes" />
+        </Component>
+
+        <Component Id="OfficeDrawIoPpt_Registry_FriendlyName">
+          <RegistryValue Id="OfficeDrawIoPpt_RegKey_FriendlyName" Root="HKLM"
+                         Key="Software\Microsoft\Office\PowerPoint\AddIns\OfficeDrawIoPpt"
+                         Name="FriendlyName"
+                         Value="OfficeDrawIoPpt Add-In"
+                         Type="string" KeyPath="yes" />
+        </Component>
+        <Component Id="OfficeDrawIoPpt_Registry_Description">
+          <RegistryValue Id="OfficeDrawIoPpt_RegKey_Description" Root="HKLM"
+                         Key="Software\Microsoft\Office\PowerPoint\AddIns\OfficeDrawIoPpt"
+                         Name="Description"
+                         Value="OfficeDrawIoPpt Add-In"
+                         Type="string" KeyPath="yes" />
+        </Component>
+        <Component Id="OfficeDrawIoPpt_Registry_Manifest">
+          <RegistryValue Id="OfficeDrawIoPpt_RegKey_Manifest" Root="HKLM"
+                         Key="Software\Microsoft\Office\PowerPoint\AddIns\OfficeDrawIoPpt"
+                         Name="Manifest" Value="[INSTALLFOLDER]OfficeDrawIoPpt.vsto|vstolocal"
+                         Type="string" KeyPath="yes" />
+        </Component>
+        <Component Id="OfficeDrawIoPpt_Registry_LoadBehavior">
+          <RegistryValue Id="OfficeDrawIoPpt_RegKey_LoadBehavior" Root="HKLM"
+                         Key="Software\Microsoft\Office\PowerPoint\AddIns\OfficeDrawIoPpt"
                          Name="LoadBehavior" Value="3"
                          Type="integer" KeyPath="yes" />
         </Component>
@@ -85,16 +113,23 @@
 
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Component Id="OfficeDrawIoWord" Guid="{73A8EBD0-DD7D-42E9-A94B-3983F2D8C524}">
 
+      <Component Id="OfficeDrawIoWord" Guid="{73A8EBD0-DD7D-42E9-A94B-3983F2D8C524}">
         <File Id="OfficeDrawIo_dll" Name="OfficeDrawIo.dll" Source="$(var.OfficeDrawIoBin)" />
         <File Id="OfficeDrawIoWord_vsto" Name="OfficeDrawIoWord.vsto" Source="$(var.OfficeDrawIoWordBin)"></File>
         <File Id="OfficeDrawIoWord_dll_manifest" Name="OfficeDrawIoWord.dll.manifest" Source="$(var.OfficeDrawIoWordBin)"></File>
         <File Id="OfficeDrawIoWord_dll" Name="OfficeDrawIoWord.dll" Source="$(var.OfficeDrawIoWordBin)" />
         <File Id="MSOfficeToolsCommon_dll" Name="Microsoft.Office.Tools.Common.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoWordBin)"></File>
         <File Id="MSOfficeToolsWord_dll" Name="Microsoft.Office.Tools.Word.v4.0.Utilities.dll" Source="$(var.OfficeDrawIoWordBin)"></File>
-
       </Component>
+
+      <Component Id="OfficeDrawIoPpt" Guid="{662E4DEA-1E72-4C2E-A6C1-996B89565CD8}">
+        <File Id="OfficeDrawIoPpt_vsto" Name="OfficeDrawIoPpt.vsto" Source="$(var.OfficeDrawIoPptBin)"></File>
+        <File Id="OfficeDrawIoPpt_dll_manifest" Name="OfficeDrawIoPpt.dll.manifest" Source="$(var.OfficeDrawIoPptBin)"></File>
+        <File Id="OfficeDrawIoPpt_dll" Name="OfficeDrawIoPpt.dll" Source="$(var.OfficeDrawIoPptBin)" />
+        <File Id="Gma_System_MouseKeyHook_dll" Name="Gma.System.MouseKeyHook.dll" Source="$(var.OfficeDrawIoPptBin)" />
+      </Component>
+
     </ComponentGroup>
   </Fragment>
 
