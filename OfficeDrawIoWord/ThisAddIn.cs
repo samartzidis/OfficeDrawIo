@@ -98,6 +98,14 @@ namespace OfficeDrawIoWord
             cancel = true;
         }
 
+        private ShapeHolder FindShape(Guid editId)
+        {
+            if (!_editMap.TryGetByFirst(editId, out var anchorId))
+                return null;
+
+            return FindShapeByAnchorId(anchorId);
+        }
+
         private ShapeHolder FindShapeByAnchorId(int anchorId)
         {
             foreach (Word.InlineShape shape in ActiveDocument.InlineShapes)
@@ -229,7 +237,7 @@ namespace OfficeDrawIoWord
 
         private ShapeHolder AddDiagramShape(string newPngFilePath, RectangleF rect)
         {
-            var shape = ActiveDocument.Shapes.AddPicture(FileName: newPngFilePath, Left: rect.Left, Top: rect.Top, Width: rect.Width, Height: rect.Height);
+            var shape = ActiveDocument.Shapes.AddPicture(FileName: newPngFilePath, Left: rect.Left, Top: rect.Top);
             shape.Title = Util.EncodePngFile(newPngFilePath);
             shape.LockAspectRatio = Microsoft.Office.Core.MsoTriState.msoTrue;
 
@@ -288,22 +296,6 @@ namespace OfficeDrawIoWord
                 MessageBox.Show($@"Failed to export Draw.io document: {m.Message}.",
                     Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        private ShapeHolder FindShape(Guid editId)
-        {
-            if (!_editMap.TryGetByFirst(editId, out var anchorId))
-                return null;
-
-            foreach (Word.InlineShape shape in ActiveDocument.InlineShapes)
-                if (shape.AnchorID == anchorId)
-                    return new ShapeHolder(shape);
-
-            foreach (Word.Shape shape in ActiveDocument.Shapes)
-                if (shape.AnchorID == anchorId)
-                    return new ShapeHolder(shape);
-
-            return null;
         }
 
         public void Settings()
