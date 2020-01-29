@@ -25,7 +25,6 @@ namespace OfficeDrawIoWord
         public SynchronizationContext TheWindowsFormsSynchronizationContext { get; private set; }
         public ShapeHolder SelectedShape => GetCurrentSelection().FirstOrDefault();
 
-        private static ThisAddIn _addin;    
         private string _userTmpFilesDir;
         private SettingsAdapter _settings;
         private SettingsForm _sf;
@@ -35,11 +34,13 @@ namespace OfficeDrawIoWord
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
+#if DEBUG
             Trace.Listeners.Clear();
             Trace.Listeners.Add(new OfficeDrawIo.TraceListener());
+#endif
+
             Trace.WriteLine("ThisAddIn_Startup()");
 
-            _addin = this;
             _userTmpFilesDir = Path.Combine(Path.GetTempPath(), $"OfficeDrawIo.{Process.GetCurrentProcess().Id}");
             Trace.WriteLine(_userTmpFilesDir);
             _settings = new SettingsAdapter();
@@ -138,7 +139,6 @@ namespace OfficeDrawIoWord
             }
         }
 
-
         public void EditDiagramShape(ShapeHolder shape)
         {
             Trace.WriteLine($"EditDiagramShape: AnchorID: {shape.AnchorID}");
@@ -185,17 +185,16 @@ namespace OfficeDrawIoWord
         {
             Trace.WriteLine($"FileNotifyChanged({id})");
 
-
             var lockTaken = false;
             try
             {
-                Monitor.TryEnter(_addin._notifyChangedLockObj, ref lockTaken);
+                Monitor.TryEnter(Globals.ThisAddIn._notifyChangedLockObj, ref lockTaken);
 
                 if (lockTaken)
                 {
 
                     if (!Guid.TryParse(id, out var editId))
-                return;
+                        return;
 
                     try
                     {
@@ -328,7 +327,6 @@ namespace OfficeDrawIoWord
             dlg.ShowDialog();
         }
 
-
         private Microsoft.Office.Tools.Word.Document ActiveDocument
         {
             get
@@ -375,7 +373,7 @@ namespace OfficeDrawIoWord
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
                 using (new ScopedCursor(Cursors.WaitCursor))
-                    _addin.FileNotifyChanged(id);
+                    Globals.ThisAddIn.FileNotifyChanged(id);
 
             }, null);
         }  
@@ -395,7 +393,7 @@ namespace OfficeDrawIoWord
             return true;
         }
 
-        #region VSTO generated code
+#region VSTO generated code
 
         /// <summary>
         /// Required method for Designer support - do not modify
@@ -407,6 +405,6 @@ namespace OfficeDrawIoWord
             this.Shutdown += ThisAddIn_Shutdown;
         }
         
-        #endregion
+#endregion
     }
 }

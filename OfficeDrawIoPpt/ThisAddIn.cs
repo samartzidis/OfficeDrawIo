@@ -25,7 +25,6 @@ namespace OfficeDrawIoPpt
         public SynchronizationContext TheWindowsFormsSynchronizationContext { get; private set; }
         public PowerPoint.Shape SelectedShape => GetCurrentSelection().FirstOrDefault();
 
-        private static ThisAddIn _addin;
         private string _userTmpFilesDir;
         private SettingsAdapter _settings;
         private SettingsForm _sf;
@@ -35,11 +34,13 @@ namespace OfficeDrawIoPpt
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
+#if DEBUG
             Trace.Listeners.Clear();
             Trace.Listeners.Add(new OfficeDrawIo.TraceListener());
+#endif
+
             Trace.WriteLine("ThisAddIn_Startup()");
 
-            _addin = this;
             _userTmpFilesDir = Path.Combine(Path.GetTempPath(), $"OfficeDrawIo.{Process.GetCurrentProcess().Id}");
             Trace.WriteLine(_userTmpFilesDir);
             _settings = new SettingsAdapter();
@@ -51,7 +52,7 @@ namespace OfficeDrawIoPpt
                 Directory.CreateDirectory(_userTmpFilesDir);
 
             _globalHook = Hook.AppEvents();
-            _globalHook.MouseDownExt += _globalHook_MouseDownExt;
+            _globalHook.MouseDownExt += GlobalHook_MouseDownExt;
 
             Application.WindowSelectionChange += Application_WindowSelectionChange;
 
@@ -60,7 +61,14 @@ namespace OfficeDrawIoPpt
 
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
-            
+            EnsureStopFileWatcher();
+
+            try
+            {
+                Trace.WriteLine($"ThisAddIn_Shutdown: Deleting {_userTmpFilesDir}");
+                Directory.Delete(_userTmpFilesDir, true);
+            }
+            catch { }
         }
 
         private void Application_WindowSelectionChange(PowerPoint.Selection sel)
@@ -69,16 +77,14 @@ namespace OfficeDrawIoPpt
             handler?.Invoke(this, EventArgs.Empty);
         }
 
-        private void _globalHook_MouseDownExt(object sender, MouseEventExtArgs e)
+        private void GlobalHook_MouseDownExt(object sender, MouseEventExtArgs e)
         {
             if (e.Clicks == 2)
             {
                 Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
                 {
                     if (SelectedShape != null)
-                    {
                         EditDiagramShape(SelectedShape);
-                    }
 
                 }, null);
 
@@ -89,13 +95,7 @@ namespace OfficeDrawIoPpt
         private IEnumerable<PowerPoint.Shape> GetCurrentSelection()
         {
             PowerPoint.ShapeRange shapeRange = null;
-            try
-            {
-                shapeRange = Application.ActiveWindow.Selection.ShapeRange;
-            }
-            catch 
-            {
-            }
+            try { shapeRange = Application.ActiveWindow.Selection.ShapeRange; } catch { }
 
             if (shapeRange == null)
                 yield return null;
@@ -103,9 +103,8 @@ namespace OfficeDrawIoPpt
             foreach (PowerPoint.Shape shape in shapeRange)
             {
                 if (shape.Title.IndexOf(Util.OfficeDrawIoPayloadPrexix, StringComparison.Ordinal) == 0)
-                {
                     yield return shape;
-                }
+                
                 yield return null;
             }
         }
@@ -141,9 +140,11 @@ namespace OfficeDrawIoPpt
 
             PowerPoint.Shape shape;
             if (rect == null)
-                shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, 0, 0);
+                shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, 
+                    0, 0);
             else
-                shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, rect.Value.Left, rect.Value.Top, -1, -1);
+                shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, 
+                    rect.Value.Left, rect.Value.Top);
 
             shape.Title = Util.EncodePngFile(newPngFilePath);
             shape.LockAspectRatio = Office.MsoTriState.msoTrue;
@@ -158,7 +159,7 @@ namespace OfficeDrawIoPpt
             var lockTaken = false;
             try
             {
-                Monitor.TryEnter(_addin._notifyChangedLockObj, ref lockTaken);
+                Monitor.TryEnter(Globals.ThisAddIn._notifyChangedLockObj, ref lockTaken);
 
                 if (lockTaken)
                 {
@@ -275,7 +276,6 @@ namespace OfficeDrawIoPpt
             }
         }
 
-
         private PowerPoint.Shape FindShape(Guid editId)
         {
             if (!_editMap.TryGetByFirst(editId, out var id))
@@ -329,7 +329,6 @@ namespace OfficeDrawIoPpt
             dlg.ShowDialog();
         }
 
-
         private static void OnFileChanged(object source, FileSystemEventArgs e)
         {
             var id = Path.GetFileNameWithoutExtension(e.FullPath);
@@ -337,7 +336,7 @@ namespace OfficeDrawIoPpt
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
                 using (new ScopedCursor(Cursors.WaitCursor))
-                    _addin.FileNotifyChanged(id);
+                    Globals.ThisAddIn.FileNotifyChanged(id);
 
             }, null);
         }

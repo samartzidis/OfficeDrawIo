@@ -59,6 +59,7 @@
     <Compile Include="AboutBox.Designer.cs">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </Compile>
+    <Compile Include="AddinBase.cs" />
     <Compile Include="BasE91.cs" />
     <Compile Include="BiDictionary.cs" />
     <Compile Include="Helpers.cs" />
