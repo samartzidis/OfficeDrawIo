@@ -157,6 +157,9 @@
     can be found.
   -->
   <ItemGroup>
+    <Compile Include="..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -205,7 +208,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeDrawIo\OfficeDrawIo.csproj">
       <Project>{7598f877-f683-4a37-bcbd-e78581d1c2e9}</Project>
-      <Name>OfficeDrawIoUtil</Name>
+      <Name>OfficeDrawIo</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

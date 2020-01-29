@@ -15,6 +15,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeDrawIo", "OfficeDrawI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeDrawIoPpt", "OfficeDrawIoPpt\OfficeDrawIoPpt.csproj", "{AE8662D1-6157-498D-A0FC-1E24E1892CE6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution", "Solution", "{C199E349-6D32-4FE3-8C41-B0C5EACAE320}"
+	ProjectSection(SolutionItems) = preProject
+		CommonAssemblyInfo.cs = CommonAssemblyInfo.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,11 +32,9 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Debug|x64.ActiveCfg = Debug|x64
-		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Debug|x64.Build.0 = Debug|x64
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Debug|x86.ActiveCfg = Debug|x86
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Release|Any CPU.ActiveCfg = Release|x86
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Release|x64.ActiveCfg = Release|x64
-		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Release|x64.Build.0 = Release|x64
 		{E7EE3FE6-3CA4-48E6-BCCD-01B904717F92}.Release|x86.ActiveCfg = Release|x86
 		{648D4094-C75E-462E-A38C-2F9368F6E323}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{648D4094-C75E-462E-A38C-2F9368F6E323}.Debug|Any CPU.Build.0 = Debug|Any CPU
