@@ -24,7 +24,6 @@ namespace OfficeDrawIoPpt
         public EventHandler SelectionChanged;
         public SynchronizationContext TheWindowsFormsSynchronizationContext { get; private set; }
         public PowerPoint.Shape SelectedShape => GetCurrentSelection().FirstOrDefault();
-        public bool SuppressFileWatcherNotifications { get; private set; }
 
         private static ThisAddIn _addin;
         private string _userTmpFilesDir;
@@ -32,6 +31,7 @@ namespace OfficeDrawIoPpt
         private SettingsForm _sf;
         private FileSystemWatcher _watcher;
         private readonly BiDictionary<Guid, int> _editMap = new BiDictionary<Guid, int>();
+        private readonly object _notifyChangedLockObj = new object();
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
@@ -154,39 +154,55 @@ namespace OfficeDrawIoPpt
         public void FileNotifyChanged(string id)
         {
             Trace.WriteLine($"FileNotifyChanged({id})");
-            if (!Guid.TryParse(id, out var editId))
-                return;
 
+            var lockTaken = false;
             try
             {
-                var oldShape = FindShape(editId);
-                if (oldShape == null)
-                    return;
+                Monitor.TryEnter(_addin._notifyChangedLockObj, ref lockTaken);
 
-                Trace.WriteLine($"FileNotifyChanged:oldShape.Id: {oldShape.Id}");
-                Trace.WriteLine($"FileNotifyChanged:oldShape dimensions: {oldShape.Left}, {oldShape.Top}");
-
-                var rect = new RectangleF(oldShape.Left, oldShape.Top, oldShape.Width, oldShape.Height);
-                var rotation = oldShape.Rotation;
-
-                do
+                if (lockTaken)
                 {
-                    oldShape.Delete();
-                    oldShape = FindShape(editId);
-                } while (oldShape != null);
+                    
+                    if (!Guid.TryParse(id, out var editId))
+                        return;
 
-                var editFilePath = Path.Combine(_userTmpFilesDir, $"{editId}.png");
-                var newShape = AddDiagramShape(editFilePath, rect);
-                newShape.Rotation = rotation;
-                
-                Trace.WriteLine($"FileNotifyChanged:newShape.Id: {newShape.Id}");
+                    try
+                    {
+                        var oldShape = FindShape(editId);
+                        if (oldShape == null)
+                            return;
 
-                _editMap.AddOrUpdate(editId, newShape.Id);
+                        Trace.WriteLine($"FileNotifyChanged:oldShape.Id: {oldShape.Id}");
+                        Trace.WriteLine($"FileNotifyChanged:oldShape dimensions: {oldShape.Left}, {oldShape.Top}");
+
+                        var rect = new RectangleF(oldShape.Left, oldShape.Top, oldShape.Width, oldShape.Height);
+                        var rotation = oldShape.Rotation;
+
+                        do
+                        {
+                            oldShape.Delete();
+                            oldShape = FindShape(editId);
+                        } while (oldShape != null);
+
+                        var editFilePath = Path.Combine(_userTmpFilesDir, $"{editId}.png");
+                        var newShape = AddDiagramShape(editFilePath, rect);
+                        newShape.Rotation = rotation;
+
+                        Trace.WriteLine($"FileNotifyChanged:newShape.Id: {newShape.Id}");
+
+                        _editMap.AddOrUpdate(editId, newShape.Id);
+                    }
+                    catch (Exception m)
+                    {
+                        MessageBox.Show($"Something went wrong while updating the the Draw.io diagram.\r\nError details:\r\n{m}",
+                                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
             }
-            catch (Exception m)
+            finally
             {
-                MessageBox.Show($"Something went wrong while updating the the Draw.io diagram.\r\nError details:\r\n{m}",
-                            Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (lockTaken)
+                    Monitor.Exit(_notifyChangedLockObj);
             }
         }
 
@@ -313,17 +329,14 @@ namespace OfficeDrawIoPpt
             dlg.ShowDialog();
         }
 
+
         private static void OnFileChanged(object source, FileSystemEventArgs e)
         {
-            if (_addin.SuppressFileWatcherNotifications)
-                return;
-
             var id = Path.GetFileNameWithoutExtension(e.FullPath);
 
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
                 using (new ScopedCursor(Cursors.WaitCursor))
-                using (new ScopedLambda(() => _addin.SuppressFileWatcherNotifications = true, () => _addin.SuppressFileWatcherNotifications = false))
                     _addin.FileNotifyChanged(id);
 
             }, null);

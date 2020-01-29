@@ -24,7 +24,6 @@ namespace OfficeDrawIoWord
         public EventHandler SelectionChanged;
         public SynchronizationContext TheWindowsFormsSynchronizationContext { get; private set; }
         public ShapeHolder SelectedShape => GetCurrentSelection().FirstOrDefault();
-        public bool SuppressFileWatcherNotifications { get; private set; }
 
         private static ThisAddIn _addin;    
         private string _userTmpFilesDir;
@@ -32,6 +31,7 @@ namespace OfficeDrawIoWord
         private SettingsForm _sf;
         private FileSystemWatcher _watcher;
         private readonly BiDictionary<Guid, int> _editMap = new BiDictionary<Guid, int>();
+        private readonly object _notifyChangedLockObj = new object();
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
@@ -184,43 +184,60 @@ namespace OfficeDrawIoWord
         public void FileNotifyChanged(string id)
         {
             Trace.WriteLine($"FileNotifyChanged({id})");
-            if (!Guid.TryParse(id, out var editId))
-                return;
 
+
+            var lockTaken = false;
             try
             {
-                var oldShape = FindShape(editId);
-                if (oldShape == null)
-                    return;
+                Monitor.TryEnter(_addin._notifyChangedLockObj, ref lockTaken);
 
-                Trace.WriteLine($"FileNotifyChanged:oldShape.AnchorID: {oldShape.AnchorID}");
-
-                var editFilePath = Path.Combine(_userTmpFilesDir, $"{id}.png");
-                ShapeHolder newShape;
-                if (oldShape.IsInlineShape)
+                if (lockTaken)
                 {
-                    var range = oldShape.InlineShape.Range;
-                    oldShape.Delete();
-                    newShape = AddDiagramInlineShape(editFilePath, range);
+
+                    if (!Guid.TryParse(id, out var editId))
+                return;
+
+                    try
+                    {
+                        var oldShape = FindShape(editId);
+                        if (oldShape == null)
+                            return;
+
+                        Trace.WriteLine($"FileNotifyChanged:oldShape.AnchorID: {oldShape.AnchorID}");
+
+                        var editFilePath = Path.Combine(_userTmpFilesDir, $"{id}.png");
+                        ShapeHolder newShape;
+                        if (oldShape.IsInlineShape)
+                        {
+                            var range = oldShape.InlineShape.Range;
+                            oldShape.Delete();
+                            newShape = AddDiagramInlineShape(editFilePath, range);
+                        }
+                        else
+                        {
+                            var rect = new RectangleF(oldShape.Shape.Left, oldShape.Shape.Top, oldShape.Shape.Width, oldShape.Shape.Height);
+                            var rotation = oldShape.Shape.Rotation;
+
+                            oldShape.Delete();
+                            newShape = AddDiagramShape(editFilePath, rect);
+                            newShape.Shape.Rotation = rotation;
+                        }
+
+                        Trace.WriteLine($"FileNotifyChanged:newShape.AnchorID: {newShape.AnchorID}");
+
+                        _editMap.AddOrUpdate(editId, newShape.AnchorID);
+                    }
+                    catch (Exception m)
+                    {
+                        MessageBox.Show($"Something went wrong while updating the the Draw.io diagram.\r\nError details:\r\n{m}",
+                                    Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
-                else
-                {
-                    var rect = new RectangleF(oldShape.Shape.Left, oldShape.Shape.Top, oldShape.Shape.Width, oldShape.Shape.Height);
-                    var rotation = oldShape.Shape.Rotation;
-
-                    oldShape.Delete();
-                    newShape = AddDiagramShape(editFilePath, rect);
-                    newShape.Shape.Rotation = rotation;
-                }
-
-                Trace.WriteLine($"FileNotifyChanged:newShape.AnchorID: {newShape.AnchorID}");
-
-                _editMap.AddOrUpdate(editId, newShape.AnchorID);
             }
-            catch (Exception m)
+            finally
             {
-                MessageBox.Show($"Something went wrong while updating the the Draw.io diagram.\r\nError details:\r\n{m}",
-                            Application.ActiveWindow.Caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (lockTaken)
+                    Monitor.Exit(_notifyChangedLockObj);
             }
         }
 
@@ -353,15 +370,11 @@ namespace OfficeDrawIoWord
 
         private static void OnFileChanged(object source, FileSystemEventArgs e)
         {
-            if (_addin.SuppressFileWatcherNotifications)
-                return;
-
             var id = Path.GetFileNameWithoutExtension(e.FullPath);
 
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
                 using (new ScopedCursor(Cursors.WaitCursor))
-                using (new ScopedLambda(() => _addin.SuppressFileWatcherNotifications = true, () => _addin.SuppressFileWatcherNotifications = false))
                     _addin.FileNotifyChanged(id);
 
             }, null);
