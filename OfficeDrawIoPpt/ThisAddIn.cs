@@ -143,11 +143,10 @@ namespace OfficeDrawIoPpt
             if (rect == null)
                 shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, 0, 0);
             else
-                shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, 
-                    Left: rect.Value.Left, Top: rect.Value.Top);
+                shape = slide.Shapes.AddPicture(newPngFilePath, Office.MsoTriState.msoFalse, Office.MsoTriState.msoCTrue, rect.Value.Left, rect.Value.Top, -1, -1);
 
             shape.Title = Util.EncodePngFile(newPngFilePath);
-            shape.LockAspectRatio = Microsoft.Office.Core.MsoTriState.msoTrue;
+            shape.LockAspectRatio = Office.MsoTriState.msoTrue;
 
             return shape;
         }
@@ -164,12 +163,17 @@ namespace OfficeDrawIoPpt
                 if (oldShape == null)
                     return;
 
+                Trace.WriteLine($"FileNotifyChanged:oldShape.Id: {oldShape.Id}");
+                Trace.WriteLine($"FileNotifyChanged:oldShape dimensions: {oldShape.Left}, {oldShape.Top}");
+
                 var rect = new RectangleF(oldShape.Left, oldShape.Top, oldShape.Width, oldShape.Height);
                 var rotation = oldShape.Rotation;
 
-                Trace.WriteLine($"FileNotifyChanged:oldShape.Id: {oldShape.Id}");
-
-                oldShape.Delete();
+                do
+                {
+                    oldShape.Delete();
+                    oldShape = FindShape(editId);
+                } while (oldShape != null);
 
                 var editFilePath = Path.Combine(_userTmpFilesDir, $"{editId}.png");
                 var newShape = AddDiagramShape(editFilePath, rect);
@@ -318,6 +322,7 @@ namespace OfficeDrawIoPpt
 
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
+                using (new ScopedCursor(Cursors.WaitCursor))
                 using (new ScopedLambda(() => _addin.SuppressFileWatcherNotifications = true, () => _addin.SuppressFileWatcherNotifications = false))
                     _addin.FileNotifyChanged(id);
 

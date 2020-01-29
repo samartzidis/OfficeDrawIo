@@ -14,6 +14,7 @@ using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeDrawIo;
+using OfficeDrawIoUtil;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace OfficeDrawIoWord
@@ -359,6 +360,7 @@ namespace OfficeDrawIoWord
 
             Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
             {
+                using (new ScopedCursor(Cursors.WaitCursor))
                 using (new ScopedLambda(() => _addin.SuppressFileWatcherNotifications = true, () => _addin.SuppressFileWatcherNotifications = false))
                     _addin.FileNotifyChanged(id);
 
