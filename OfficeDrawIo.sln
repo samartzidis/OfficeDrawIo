@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeDrawIoWord", "OfficeD
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeDrawIo", "OfficeDrawIo\OfficeDrawIo.csproj", "{7598F877-F683-4A37-BCBD-E78581D1C2E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeDrawIoPpt", "OfficeDrawIoPpt\OfficeDrawIoPpt.csproj", "{AE8662D1-6157-498D-A0FC-1E24E1892CE6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{7598F877-F683-4A37-BCBD-E78581D1C2E9}.Release|x64.Build.0 = Release|Any CPU
 		{7598F877-F683-4A37-BCBD-E78581D1C2E9}.Release|x86.ActiveCfg = Release|Any CPU
 		{7598F877-F683-4A37-BCBD-E78581D1C2E9}.Release|x86.Build.0 = Release|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Debug|x64.Build.0 = Debug|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Debug|x86.Build.0 = Debug|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Release|x64.ActiveCfg = Release|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Release|x64.Build.0 = Release|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Release|x86.ActiveCfg = Release|Any CPU
+		{AE8662D1-6157-498D-A0FC-1E24E1892CE6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

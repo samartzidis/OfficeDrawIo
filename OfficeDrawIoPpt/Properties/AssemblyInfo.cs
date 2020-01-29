@@ -6,12 +6,12 @@ using System.Security;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("OfficeDrawIoWord")]
+[assembly: AssemblyTitle("OfficeDrawIoPpt")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("OfficeDrawIoWord")]
-[assembly: AssemblyCopyright("Copyright © 2019 George Samartzidis")]
+[assembly: AssemblyProduct("OfficeDrawIoPpt")]
+[assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -21,7 +21,7 @@ using System.Security;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("8a6d382a-cdae-4f8a-ac9a-304d9e8bb9db")]
+[assembly: Guid("9a900f6b-c4d7-4bb5-a5a1-5a27295f6fc9")]
 
 // Version information for an assembly consists of the following four values:
 //
