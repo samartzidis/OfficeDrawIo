@@ -95,9 +95,10 @@ namespace OfficeDrawIoWord
         private void Application_WindowBeforeDoubleClick(Word.Selection sel, ref bool cancel)
         {
             if (SelectedShape != null)
+            {
                 EditDiagramShape(SelectedShape);
-
-            cancel = true;
+                cancel = true;
+            }
         }
 
         private ShapeHolder FindShape(Guid editId)
