@@ -84,11 +84,13 @@ namespace OfficeDrawIoPpt
                 Globals.ThisAddIn.TheWindowsFormsSynchronizationContext.Send(d =>
                 {
                     if (SelectedShape != null)
+                    {                        
                         EditDiagramShape(SelectedShape);
 
-                }, null);
+                        e.Handled = true;
+                    }
 
-                e.Handled = true;
+                }, null);
             }
         }
 
