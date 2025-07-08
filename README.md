@@ -15,10 +15,10 @@ Runtime Requirements
 Troubleshooting
 -
 1. The add-in does not show up in the Word or PowerPoint ribbon.
-
-    - Make sure you installed the correct installer for your Office Version. If in doubt you can install both. 
-    
+    - Make sure you installed the correct installer for your Office Version. If in doubt you can install both.     
     - Right click onto the PowerPoint ribbon area and select **Customize the Ribbon...** -> **Add-ins** -> **Manage: COM Add-ins** -> **Go...**, make sure that the *OfficeDrawIoPpt* or *OfficeDrawIoWord* add-in in the **Add-ins available** list is checked.
+2. When I try to edit a diagram I receive the error `"Failed to start Draw.io Desktop application for file ... System.ComponentModel.Win32Exception (0x80004005): Access is denied"`
+    - Check if your antivirus or Microsoft Defender has a special configured policy blocking Office applications from creating child processes, e.g. by looking into your Microsoft Defender protection history. If so, to get around this, you will need to create an exclusion policy for path `"C:\Program Files\draw.io\draw.io.exe"`.
 
 Screenshots
 -
